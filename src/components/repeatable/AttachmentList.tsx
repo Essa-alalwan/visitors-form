@@ -5,6 +5,11 @@ import { RepeatableCard } from "./RepeatableCard";
 import { AttachmentDropzone } from "../upload/AttachmentDropzone";
 import { TextField } from "../fields/TextField";
 import { getFieldError } from "../../utils/getFieldError";
+import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
+
+function blankAttachment() {
+  return { id: nanoid(), file: undefined, description: "", remarks: "" };
+}
 
 export function AttachmentList({ parentName }: { parentName: string }) {
   const {
@@ -16,6 +21,8 @@ export function AttachmentList({ parentName }: { parentName: string }) {
   const { fields, append, remove } = useFieldArray({ control, name });
   const arrayError = getFieldError(errors, name);
 
+  useEnsureOneEntry(fields, append, blankAttachment);
+
   return (
     <RepeatableSection
       title="Attachments"
@@ -24,7 +31,7 @@ export function AttachmentList({ parentName }: { parentName: string }) {
       emptyMessage="No attachments added yet."
       error={arrayError}
       onAdd={() => {
-        append({ id: nanoid(), file: undefined, description: "", remarks: "" });
+        append(blankAttachment());
         clearErrors(name);
       }}
       renderItem={(_field, index) => (

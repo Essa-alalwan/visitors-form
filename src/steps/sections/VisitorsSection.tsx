@@ -7,6 +7,11 @@ import { RepeatableCard } from "../../components/repeatable/RepeatableCard";
 import { AttachmentList } from "../../components/repeatable/AttachmentList";
 import { VISIT_KINDS } from "../../utils/constants";
 import { getFieldError } from "../../utils/getFieldError";
+import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
+
+function blankVisitor() {
+  return { id: nanoid(), name: "", cprOrPassport: "", jobTitle: "", attachments: [] };
+}
 
 export function VisitorsSection() {
   const {
@@ -19,6 +24,8 @@ export function VisitorsSection() {
     name: "visitors",
   });
   const arrayError = getFieldError(errors, "visitors");
+
+  useEnsureOneEntry(fields, append, blankVisitor);
 
   return (
     <div className="space-y-6">
@@ -36,13 +43,7 @@ export function VisitorsSection() {
         emptyMessage="No visitors added yet. Add at least one visitor to continue."
         error={arrayError}
         onAdd={() => {
-          append({
-            id: nanoid(),
-            name: "",
-            cprOrPassport: "",
-            jobTitle: "",
-            attachments: [],
-          });
+          append(blankVisitor());
           clearErrors("visitors");
         }}
         renderItem={(_field, index) => (

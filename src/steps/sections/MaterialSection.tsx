@@ -12,6 +12,21 @@ import {
   YES_NO_OPTIONS,
 } from "../../utils/constants";
 import { getFieldError } from "../../utils/getFieldError";
+import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
+
+function blankMaterial() {
+  return {
+    id: nanoid(),
+    inOut: "",
+    returnable: "",
+    description: "",
+    quantity: "",
+    uom: "",
+    pat: "",
+    remarks: "",
+    attachments: [],
+  };
+}
 
 export function MaterialSection() {
   const {
@@ -24,6 +39,8 @@ export function MaterialSection() {
     name: "materials",
   });
   const arrayError = getFieldError(errors, "materials");
+
+  useEnsureOneEntry(fields, append, blankMaterial);
 
   return (
     <div className="space-y-6">
@@ -67,17 +84,7 @@ export function MaterialSection() {
         emptyMessage="No materials added yet. Add at least one item to continue."
         error={arrayError}
         onAdd={() => {
-          append({
-            id: nanoid(),
-            inOut: "",
-            returnable: "",
-            description: "",
-            quantity: "",
-            uom: "",
-            pat: "",
-            remarks: "",
-            attachments: [],
-          });
+          append(blankMaterial());
           clearErrors("materials");
         }}
         renderItem={(_field, index) => (

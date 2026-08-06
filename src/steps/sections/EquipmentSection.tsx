@@ -6,6 +6,19 @@ import { RepeatableSection } from "../../components/repeatable/RepeatableSection
 import { RepeatableCard } from "../../components/repeatable/RepeatableCard";
 import { AttachmentList } from "../../components/repeatable/AttachmentList";
 import { getFieldError } from "../../utils/getFieldError";
+import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
+
+function blankEquipment() {
+  return {
+    id: nanoid(),
+    typeModel: "",
+    plateNo: "",
+    name: "",
+    operatorLicenseNo: "",
+    remarks: "",
+    attachments: [],
+  };
+}
 
 export function EquipmentSection() {
   const {
@@ -19,6 +32,8 @@ export function EquipmentSection() {
   });
   const arrayError = getFieldError(errors, "equipment");
 
+  useEnsureOneEntry(fields, append, blankEquipment);
+
   return (
     <RepeatableSection
       title="Equipment List"
@@ -27,15 +42,7 @@ export function EquipmentSection() {
       emptyMessage="No equipment added yet. Add at least one item to continue."
       error={arrayError}
       onAdd={() => {
-        append({
-          id: nanoid(),
-          typeModel: "",
-          plateNo: "",
-          name: "",
-          operatorLicenseNo: "",
-          remarks: "",
-          attachments: [],
-        });
+        append(blankEquipment());
         clearErrors("equipment");
       }}
       renderItem={(_field, index) => (
