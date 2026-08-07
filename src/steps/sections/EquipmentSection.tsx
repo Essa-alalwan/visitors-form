@@ -49,7 +49,7 @@ export function EquipmentSection() {
         <RepeatableCard
           title={`Equipment ${index + 1}`}
           removeLabel="Remove Equipment"
-          onRemove={() => remove(index)}
+          onRemove={index === 0 ? undefined : () => remove(index)}
         >
           <TextField
             name={`equipment.${index}.typeModel`}

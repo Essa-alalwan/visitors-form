@@ -50,7 +50,7 @@ export function VisitorsSection() {
           <RepeatableCard
             title={`Visitor ${index + 1}`}
             removeLabel="Remove Visitor"
-            onRemove={() => remove(index)}
+            onRemove={index === 0 ? undefined : () => remove(index)}
           >
             <TextField
               name={`visitors.${index}.name`}

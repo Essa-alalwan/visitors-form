@@ -9,7 +9,7 @@ export function RepeatableCard({
   children,
 }: {
   title: string;
-  onRemove: () => void;
+  onRemove?: () => void;
   removeLabel: string;
   children: ReactNode;
 }) {
@@ -24,14 +24,16 @@ export function RepeatableCard({
     >
       <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
         <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          {removeLabel}
-        </button>
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {removeLabel}
+          </button>
+        )}
       </div>
       <div className="space-y-4 p-4">{children}</div>
     </motion.div>

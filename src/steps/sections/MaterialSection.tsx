@@ -91,7 +91,7 @@ export function MaterialSection() {
           <RepeatableCard
             title={`Material ${index + 1}`}
             removeLabel="Remove Material"
-            onRemove={() => remove(index)}
+            onRemove={index === 0 ? undefined : () => remove(index)}
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <SelectField

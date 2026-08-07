@@ -38,7 +38,7 @@ export function AttachmentList({ parentName }: { parentName: string }) {
         <RepeatableCard
           title={`Attachment ${index + 1}`}
           removeLabel="Remove Attachment"
-          onRemove={() => remove(index)}
+          onRemove={index === 0 ? undefined : () => remove(index)}
         >
           <AttachmentDropzone name={`${name}.${index}.file`} />
           <TextField
