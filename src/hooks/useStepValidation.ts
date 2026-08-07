@@ -1,6 +1,11 @@
 import type { FieldPath } from "react-hook-form";
 import { useFormContext } from "react-hook-form";
-import { STEP_FIELD_NAMES, formSchema, type FormValues } from "../schemas/formSchema";
+import {
+  STEP_FIELD_NAMES,
+  formSchema,
+  getCrossFieldIssues,
+  type FormValues,
+} from "../schemas/formSchema";
 
 /**
  * react-hook-form's zodResolver-driven `trigger()` does not reliably clear a
@@ -10,11 +15,12 @@ import { STEP_FIELD_NAMES, formSchema, type FormValues } from "../schemas/formSc
  * syncing the result into formState via setError/clearErrors sidesteps that
  * and is provably accurate against the schema at all times.
  *
- * Validation always runs against the full schema (some rules are cross-step,
- * e.g. "visitors" is only required when requestType is "visitors"), but only
- * errors belonging to *this* step's own fields are applied — otherwise every
- * step transition would prematurely flag fields on steps the user hasn't
- * reached yet.
+ * Validation always runs against the full schema plus the cross-field rules
+ * (some rules are cross-step, e.g. "visitors" is only required when
+ * requestType is "visitors" — see getCrossFieldIssues), but only errors
+ * belonging to *this* step's own fields are applied — otherwise every step
+ * transition would prematurely flag fields on steps the user hasn't reached
+ * yet.
  */
 export function useStepValidation() {
   const { getValues, setError, clearErrors } = useFormContext<FormValues>();
@@ -23,14 +29,21 @@ export function useStepValidation() {
     const fields = STEP_FIELD_NAMES[step];
     if (!fields) return true;
 
-    const result = formSchema.safeParse(getValues());
-    clearErrors(fields as FieldPath<FormValues>[]);
+    const values = getValues();
+    const parseResult = formSchema.safeParse(values);
+    const fieldIssues = parseResult.success
+      ? []
+      : parseResult.error.issues.map((i) => ({
+          path: i.path.map(String),
+          message: i.message,
+        }));
+    const allIssues = [...fieldIssues, ...getCrossFieldIssues(values)];
 
-    if (result.success) return true;
+    clearErrors(fields as FieldPath<FormValues>[]);
 
     let firstErrorPath: string | null = null;
     let isStepValid = true;
-    for (const issue of result.error.issues) {
+    for (const issue of allIssues) {
       if (!fields.includes(issue.path[0] as never)) continue;
       const path = issue.path.join(".");
       if (!path) continue;

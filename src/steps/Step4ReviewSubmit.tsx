@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useFormContext, type FieldPath } from "react-hook-form";
 import { Send } from "lucide-react";
 import { StepCard } from "../components/layout/StepCard";
@@ -9,7 +10,11 @@ import { useStepValidation } from "../hooks/useStepValidation";
 import { useFormWizard } from "../context/FormWizardContext";
 import { submitRequest } from "../data/submitRequest";
 import { buildSubmissionPayload } from "../utils/buildSubmissionPayload";
-import { formSchema, type FormValues } from "../schemas/formSchema";
+import {
+  formSchema,
+  getCrossFieldIssues,
+  type FormValues,
+} from "../schemas/formSchema";
 
 export function Step4ReviewSubmit() {
   const {
@@ -28,18 +33,25 @@ export function Step4ReviewSubmit() {
     reset: resetFormValues,
   } = useFormContext<FormValues>();
 
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+
   async function onSubmit(values: FormValues) {
     setSubmissionStatus("submitting");
+    setSubmissionError(null);
     try {
       const payload = buildSubmissionPayload(values);
       const result = await submitRequest(payload);
       if (result.success) {
-        setReferenceNumber(result.referenceNumber);
+        setReferenceNumber(result.requestId);
         setSubmissionStatus("success");
       } else {
+        setSubmissionError(result.error);
         setSubmissionStatus("error");
       }
     } catch {
+      setSubmissionError(
+        "Something went wrong submitting your request. Please try again.",
+      );
       setSubmissionStatus("error");
     }
   }
@@ -49,10 +61,19 @@ export function Step4ReviewSubmit() {
 
     // Full-form safety net: re-validate everything (not just this step's
     // fields) directly against the schema before actually submitting.
-    const result = formSchema.safeParse(getValues());
+    const values = getValues();
+    const parseResult = formSchema.safeParse(values);
+    const fieldIssues = parseResult.success
+      ? []
+      : parseResult.error.issues.map((i) => ({
+          path: i.path.map(String),
+          message: i.message,
+        }));
+    const allIssues = [...fieldIssues, ...getCrossFieldIssues(values)];
+
     clearErrors();
-    if (!result.success) {
-      for (const issue of result.error.issues) {
+    if (allIssues.length > 0) {
+      for (const issue of allIssues) {
         const path = issue.path.join(".");
         if (path) {
           setError(path as FieldPath<FormValues>, {
@@ -63,7 +84,7 @@ export function Step4ReviewSubmit() {
       }
       return;
     }
-    onSubmit(result.data as FormValues);
+    onSubmit(values);
   }
 
   if (submissionStatus === "success" && referenceNumber) {
@@ -71,6 +92,7 @@ export function Step4ReviewSubmit() {
       <SuccessScreen
         referenceNumber={referenceNumber}
         contactEmail={getValues("contactEmail")}
+        onEdit={() => setSubmissionStatus("idle")}
         onReset={() => {
           resetFormValues();
           resetWizard();
@@ -102,7 +124,8 @@ export function Step4ReviewSubmit() {
 
         {submissionStatus === "error" && (
           <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-            Something went wrong submitting your request. Please try again.
+            {submissionError ??
+              "Something went wrong submitting your request. Please try again."}
           </p>
         )}
 

@@ -9,6 +9,7 @@ interface DateTimeFieldProps {
   label: string;
   required?: boolean;
   helperText?: string;
+  showTime?: boolean;
 }
 
 export function DateTimeField({
@@ -16,6 +17,7 @@ export function DateTimeField({
   label,
   required,
   helperText,
+  showTime = true,
 }: DateTimeFieldProps) {
   const {
     control,
@@ -41,10 +43,12 @@ export function DateTimeField({
               selected={field.value ?? null}
               onChange={(date: Date | null) => field.onChange(date)}
               onBlur={field.onBlur}
-              showTimeSelect
+              showTimeSelect={showTime}
               timeIntervals={15}
-              dateFormat="d MMM yyyy, h:mm aa"
-              placeholderText="Choose a date and time"
+              dateFormat={showTime ? "d MMM yyyy, h:mm aa" : "d MMM yyyy"}
+              placeholderText={
+                showTime ? "Choose a date and time" : "Choose a date"
+              }
               wrapperClassName="w-full"
               className={`${inputBaseClass} ${inputBorderClass(!!error)} pr-10`}
             />

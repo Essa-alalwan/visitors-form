@@ -1,13 +1,15 @@
 import { motion } from "framer-motion";
-import { CheckCircle2, RotateCcw } from "lucide-react";
+import { CheckCircle2, Pencil, RotateCcw } from "lucide-react";
 
 export function SuccessScreen({
   referenceNumber,
   contactEmail,
+  onEdit,
   onReset,
 }: {
   referenceNumber: string;
   contactEmail?: string;
+  onEdit: () => void;
   onReset: () => void;
 }) {
   return (
@@ -48,14 +50,24 @@ export function SuccessScreen({
           : "Status updates will be sent to the contact email if one was provided."}
       </p>
 
-      <button
-        type="button"
-        onClick={onReset}
-        className="mx-auto mt-7 flex items-center gap-1.5 rounded-xl bg-accent-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-accent-500/30 transition-colors hover:bg-accent-600"
-      >
-        <RotateCcw className="h-4 w-4" />
-        Submit Another Request
-      </button>
+      <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100"
+        >
+          <Pencil className="h-4 w-4" />
+          Edit This Request
+        </button>
+        <button
+          type="button"
+          onClick={onReset}
+          className="flex items-center gap-1.5 rounded-xl bg-accent-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-accent-500/30 transition-colors hover:bg-accent-600"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Submit Another Request
+        </button>
+      </div>
     </motion.div>
   );
 }

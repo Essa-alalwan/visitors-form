@@ -40,6 +40,12 @@ export function Step3TypeSpecific() {
         vehiclePlateNo: "",
       });
     }
+    if (requestType === "equipment" && !getValues("equipmentDetails")) {
+      setValue("equipmentDetails", {
+        createdBy: "",
+        cprExpiryDate: undefined,
+      });
+    }
   }, [requestType, getValues, setValue]);
 
   async function handleNext() {

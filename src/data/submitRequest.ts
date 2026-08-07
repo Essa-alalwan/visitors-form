@@ -1,71 +1,119 @@
-import { generateReferenceNumber } from "../utils/referenceNumber";
-import type { AttachmentPayload, SubmissionPayload, SubmitResult } from "./payloadTypes";
+import type { SubmissionPayload, SubmitResult } from "./payloadTypes";
+import { toWirePayload } from "./wirePayload";
+
+const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
 
 /**
- * Open question for backend integration: Apps Script Web Apps have constraints
- * around multipart/form-data parsing and payload size limits for base64 JSON.
- * The real implementation will likely need to either (a) convert File objects
- * to base64 strings before sending as JSON, or (b) POST as FormData if the
- * Apps Script endpoint is configured to accept it. This stub deliberately
- * keeps File objects as-is on the payload so that conversion logic can be
- * added inside this function later without changing any calling code.
+ * The backend's own validation messages (e.g. "X is required.") are written
+ * in English by hand and are meant to be shown to the user as-is. But some
+ * failures are native Google API/runtime exceptions (e.g. a Drive lookup
+ * failing) whose message text is localized by Google based on the Apps
+ * Script project/account's language setting — we've seen these come back in
+ * Arabic. There's no way to request an English version of those from the
+ * frontend, so any error that isn't recognizably English is swapped for a
+ * generic English message here (the original is still logged to the
+ * console for debugging).
  */
-
-function describeAttachment(attachment: AttachmentPayload) {
-  return {
-    ...attachment,
-    file: {
-      name: attachment.file.name,
-      size: attachment.file.size,
-      type: attachment.file.type,
-    },
-  };
+function isLikelyEnglish(text: string): boolean {
+  const letters = text.match(/[A-Za-z]/g)?.length ?? 0;
+  const nonAsciiLetters = text.match(/[^\x00-\x7F]/g)?.length ?? 0;
+  return letters > 0 && nonAsciiLetters === 0;
 }
 
-function describePayloadForLogging(payload: SubmissionPayload) {
-  const described: Record<string, unknown> = { ...payload };
+/**
+ * The real backend's raw response is asymmetric: a successful write looks
+ * like {ok:true, requestId, version}, while a rejected/errored request looks
+ * like {success:false, error} — confirmed against the live endpoint. This
+ * normalizes both into the app's consistent SubmitResult shape.
+ */
+function parseSubmitResult(value: unknown): SubmitResult | null {
+  if (typeof value !== "object" || value === null) return null;
+  const v = value as Record<string, unknown>;
 
-  if (payload.requestType === "visitors") {
-    described.visitors = payload.visitors.map((v) => ({
-      ...v,
-      attachments: v.attachments.map(describeAttachment),
-    }));
-  } else if (payload.requestType === "material") {
-    described.material = {
-      details: payload.material.details,
-      items: payload.material.items.map((m) => ({
-        ...m,
-        attachments: m.attachments.map(describeAttachment),
-      })),
+  if (v.ok === true && typeof v.requestId === "string") {
+    return {
+      success: true,
+      requestId: v.requestId,
+      version: typeof v.version === "string" ? v.version : undefined,
     };
-  } else if (payload.requestType === "equipment") {
-    described.equipment = payload.equipment.map((e) => ({
-      ...e,
-      attachments: e.attachments.map(describeAttachment),
-    }));
   }
-
-  return described;
-}
-
-function randomDelay(minMs: number, maxMs: number) {
-  const ms = minMs + Math.random() * (maxMs - minMs);
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  if (v.success === false && typeof v.error === "string") {
+    if (!isLikelyEnglish(v.error)) {
+      // eslint-disable-next-line no-console
+      console.error("[submitRequest] Non-English backend error:", v.error);
+      return {
+        success: false,
+        error: "Something went wrong on the server. Please try again or contact support.",
+      };
+    }
+    return { success: false, error: v.error };
+  }
+  return null;
 }
 
 export async function submitRequest(
   payload: SubmissionPayload,
 ): Promise<SubmitResult> {
-  // eslint-disable-next-line no-console
-  console.log(
-    "[submitRequest] Submitting Aldur II access request:",
-    describePayloadForLogging(payload),
-  );
+  if (!APPS_SCRIPT_URL) {
+    return {
+      success: false,
+      error:
+        "The form isn't configured with a backend URL. Contact the site administrator.",
+    };
+  }
 
-  await randomDelay(900, 1500);
+  let wirePayload;
+  try {
+    wirePayload = await toWirePayload(payload);
+  } catch {
+    return {
+      success: false,
+      error: "Couldn't read one of the attached files. Please re-attach it and try again.",
+    };
+  }
 
-  const submittedAt = new Date().toISOString();
-  const referenceNumber = generateReferenceNumber(new Date(submittedAt));
+  let response: Response;
+  try {
+    response = await fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      headers: {
+        // Intentionally text/plain, NOT application/json — this avoids a
+        // CORS preflight request that Apps Script Web Apps handle poorly.
+        "Content-Type": "text/plain;charset=utf-8",
+      },
+      body: JSON.stringify(wirePayload),
+    });
+  } catch {
+    return {
+      success: false,
+      error: "Couldn't reach the server. Check your internet connection and try again.",
+    };
+  }
 
-  return { success: true, referenceNumber, submittedAt };
+  if (!response.ok) {
+    return {
+      success: false,
+      error: `The server returned an unexpected error (HTTP ${response.status}). Please try again later.`,
+    };
+  }
+
+  let result: unknown;
+  try {
+    result = await response.json();
+  } catch {
+    return {
+      success: false,
+      error: "The server sent back an unreadable response. Please try again later.",
+    };
+  }
+
+  const parsed = parseSubmitResult(result);
+  if (!parsed) {
+    return {
+      success: false,
+      error: "The server returned an unexpected response. Please try again later.",
+    };
+  }
+
+  return parsed;
 }

@@ -26,15 +26,6 @@ export function RepeatableSection<T extends { id: string }>({
         <h3 className="mb-3 text-sm font-semibold text-slate-800">{title}</h3>
       )}
 
-      <button
-        type="button"
-        onClick={onAdd}
-        className="mb-4 flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-primary-300 py-3 text-sm font-semibold text-primary-700 transition-colors hover:border-primary-500 hover:bg-primary-50"
-      >
-        <Plus className="h-4 w-4" />
-        {addLabel}
-      </button>
-
       {items.length === 0 && (
         <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
           {emptyMessage}
@@ -50,6 +41,15 @@ export function RepeatableSection<T extends { id: string }>({
       </div>
 
       <FieldError message={error} />
+
+      <button
+        type="button"
+        onClick={onAdd}
+        className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-primary-300 py-3 text-sm font-semibold text-primary-700 transition-colors hover:border-primary-500 hover:bg-primary-50"
+      >
+        <Plus className="h-4 w-4" />
+        {addLabel}
+      </button>
     </div>
   );
 }

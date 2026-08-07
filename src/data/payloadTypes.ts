@@ -43,7 +43,12 @@ export interface EquipmentItemPayload {
   attachments: AttachmentPayload[];
 }
 
-interface BaseSubmissionPayload {
+export interface EquipmentDetailsPayload {
+  createdBy: string;
+  cprExpiryDate: string;
+}
+
+export interface BaseSubmissionPayload {
   visitDateTime: string;
   visitDuration?: string;
   companyName: string;
@@ -70,10 +75,18 @@ export type SubmissionPayload = BaseSubmissionPayload &
       }
     | {
         requestType: "equipment";
+        equipmentDetails: EquipmentDetailsPayload;
         equipment: EquipmentItemPayload[];
       }
   );
 
+/**
+ * Normalized, UI-facing result shape. The real backend's raw responses are
+ * asymmetric — success looks like {ok:true, requestId, version} and failure
+ * looks like {success:false, error} (confirmed empirically against the live
+ * endpoint) — that translation happens in submitRequest.ts so the rest of
+ * the app only ever deals with this consistent shape.
+ */
 export type SubmitResult =
-  | { success: true; referenceNumber: string; submittedAt: string }
+  | { success: true; requestId: string; version?: string }
   | { success: false; error: string };

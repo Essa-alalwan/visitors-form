@@ -119,7 +119,22 @@ export function ReviewSummary() {
       )}
 
       {values.requestType === "equipment" && (
-        <SummarySection title={`Equipment (${values.equipment?.length ?? 0})`}>
+        <>
+          <SummarySection title="Equipment Request Details">
+            <SummaryRow
+              label="Created By"
+              value={values.equipmentDetails?.createdBy}
+            />
+            <SummaryRow
+              label="CPR Expiry Date"
+              value={
+                values.equipmentDetails?.cprExpiryDate instanceof Date
+                  ? format(values.equipmentDetails.cprExpiryDate, "d MMM yyyy")
+                  : null
+              }
+            />
+          </SummarySection>
+          <SummarySection title={`Equipment (${values.equipment?.length ?? 0})`}>
           {(values.equipment ?? []).map((item, index) => (
             <div
               key={item.id}
@@ -137,7 +152,8 @@ export function ReviewSummary() {
               </p>
             </div>
           ))}
-        </SummarySection>
+          </SummarySection>
+        </>
       )}
     </div>
   );

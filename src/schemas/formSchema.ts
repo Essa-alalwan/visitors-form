@@ -14,11 +14,13 @@ export const attachmentSchema = z.object({
       message: "Please attach a file",
     })
     .refine(
-      (f) => f.size <= MAX_FILE_SIZE_BYTES,
+      (f) => !(f instanceof File) || f.size <= MAX_FILE_SIZE_BYTES,
       `File must be smaller than ${MAX_FILE_SIZE_MB}MB`,
     )
     .refine(
-      (f) => (ACCEPTED_FILE_TYPES as readonly string[]).includes(f.type),
+      (f) =>
+        !(f instanceof File) ||
+        (ACCEPTED_FILE_TYPES as readonly string[]).includes(f.type),
       "Only PDF, JPG, or PNG files are allowed",
     ),
   description: z.string().min(1, "Please describe this document"),
@@ -77,6 +79,11 @@ export const equipmentItemSchema = z.object({
     .min(1, "Please add at least one attachment"),
 });
 
+export const equipmentDetailsSchema = z.object({
+  createdBy: z.string().min(1, "Please enter who created this request"),
+  cprExpiryDate: z.date().optional(),
+});
+
 const baseFormSchema = z.object({
   requestType: z.enum(["visitors", "material", "equipment"]).optional(),
 
@@ -99,69 +106,65 @@ const baseFormSchema = z.object({
   materialDetails: materialDetailsSchema.optional(),
   materials: z.array(materialItemSchema).optional(),
 
+  equipmentDetails: equipmentDetailsSchema.optional(),
   equipment: z.array(equipmentItemSchema).optional(),
 });
 
-export const formSchema = baseFormSchema.superRefine((data, ctx) => {
+// Cross-field rules deliberately live OUTSIDE zod (as a plain function,
+// not `.superRefine()`): zod only runs `.superRefine()` when the base
+// schema itself parses with zero structural issues. Since a single missing
+// attachment file (or any other nested field failure) anywhere in the form
+// makes the base schema fail, chaining these checks via `.superRefine()`
+// would silently skip ALL of them — e.g. leaving out a visitor's attachment
+// would make "Please choose a visit kind" silently vanish even though
+// visitKind was never filled in. Running this independently guarantees
+// these checks always apply, regardless of what else is invalid.
+export function getCrossFieldIssues(
+  data: Partial<FormValues>,
+): { path: string[]; message: string }[] {
+  const issues: { path: string[]; message: string }[] = [];
+
   if (!data.requestType) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["requestType"],
-      message: "Please choose a request type",
-    });
+    issues.push({ path: ["requestType"], message: "Please choose a request type" });
   }
   if (!data.visitDateTime) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["visitDateTime"],
-      message: "Please choose a visit date and time",
-    });
+    issues.push({ path: ["visitDateTime"], message: "Please choose a visit date and time" });
   }
   if (data.contactEmail && !EMAIL_REGEX.test(data.contactEmail)) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["contactEmail"],
-      message: "Please enter a valid email address",
-    });
+    issues.push({ path: ["contactEmail"], message: "Please enter a valid email address" });
   }
 
   if (data.requestType === "visitors") {
     if (!data.visitKind) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["visitKind"],
-        message: "Please choose a visit kind",
-      });
+      issues.push({ path: ["visitKind"], message: "Please choose a visit kind" });
     }
     if (!data.visitors || data.visitors.length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["visitors"],
-        message: "Please add at least one visitor",
-      });
+      issues.push({ path: ["visitors"], message: "Please add at least one visitor" });
     }
   }
 
   if (data.requestType === "material") {
     if (!data.materials || data.materials.length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["materials"],
-        message: "Please add at least one material item",
-      });
+      issues.push({ path: ["materials"], message: "Please add at least one material item" });
     }
   }
 
   if (data.requestType === "equipment") {
-    if (!data.equipment || data.equipment.length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["equipment"],
-        message: "Please add at least one equipment item",
+    if (!data.equipmentDetails?.cprExpiryDate) {
+      issues.push({
+        path: ["equipmentDetails", "cprExpiryDate"],
+        message: "Please choose a CPR expiry date",
       });
     }
+    if (!data.equipment || data.equipment.length === 0) {
+      issues.push({ path: ["equipment"], message: "Please add at least one equipment item" });
+    }
   }
-});
+
+  return issues;
+}
+
+export const formSchema = baseFormSchema;
 
 export type FormValues = z.infer<typeof baseFormSchema>;
 export type VisitorEntry = z.infer<typeof visitorSchema>;
@@ -180,6 +183,13 @@ export const STEP_FIELD_NAMES: Record<number, (keyof FormValues)[]> = {
     "aldurContactPerson",
     "department",
   ],
-  3: ["visitKind", "visitors", "materialDetails", "materials", "equipment"],
+  3: [
+    "visitKind",
+    "visitors",
+    "materialDetails",
+    "materials",
+    "equipmentDetails",
+    "equipment",
+  ],
   4: ["visitPurpose", "requestRemarks"],
 };

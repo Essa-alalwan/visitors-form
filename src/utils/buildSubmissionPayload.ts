@@ -8,6 +8,14 @@ function formatDuration(hours?: number, minutes?: number): string | undefined {
   return `${h}:${m}:00`;
 }
 
+function formatDateOnly(date?: Date): string {
+  if (!date) return "";
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function buildSubmissionPayload(values: FormValues): SubmissionPayload {
   const base = {
     visitDateTime: (values.visitDateTime as Date).toISOString(),
@@ -68,6 +76,10 @@ export function buildSubmissionPayload(values: FormValues): SubmissionPayload {
   return {
     ...base,
     requestType: "equipment",
+    equipmentDetails: {
+      createdBy: values.equipmentDetails?.createdBy ?? "",
+      cprExpiryDate: formatDateOnly(values.equipmentDetails?.cprExpiryDate),
+    },
     equipment: (values.equipment ?? []).map((e) => ({
       id: e.id,
       typeModel: e.typeModel,
