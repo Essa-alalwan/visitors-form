@@ -20,7 +20,7 @@
     "react": "^19.2.8",
     "react-datepicker": "^9.1.0",
     "react-dom": "^19.2.8",
-    "react-hook-form": "^7.84.0",
+    "react-hook-form": "^7.85.0",
     "tailwindcss": "^4.3.3",
     "zod": "^4.4.3"
   },
