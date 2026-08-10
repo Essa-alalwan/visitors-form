@@ -13,7 +13,7 @@ export const DEPARTMENTS = [
   "Plant Management",
 ] as const;
 
-export const VISIT_KINDS = ["Field Work", "Office Work"] as const;
+export const VISIT_KINDS = ["Field Work", "Office Work", "Both"] as const;
 
 export const IN_OUT_OPTIONS = ["In", "Out"] as const;
 

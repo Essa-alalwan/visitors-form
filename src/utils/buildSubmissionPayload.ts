@@ -16,7 +16,10 @@ function formatDateOnly(date?: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-export function buildSubmissionPayload(values: FormValues): SubmissionPayload {
+export function buildSubmissionPayload(
+  values: FormValues,
+  existingRequestId?: string | null,
+): SubmissionPayload {
   const base = {
     visitDateTime: (values.visitDateTime as Date).toISOString(),
     visitDuration: formatDuration(
@@ -29,6 +32,7 @@ export function buildSubmissionPayload(values: FormValues): SubmissionPayload {
     department: values.department as string,
     visitPurpose: values.visitPurpose,
     requestRemarks: values.requestRemarks || undefined,
+    existingRequestId: existingRequestId || undefined,
   };
 
   if (values.requestType === "visitors") {
@@ -41,6 +45,7 @@ export function buildSubmissionPayload(values: FormValues): SubmissionPayload {
         name: v.name,
         cprOrPassport: v.cprOrPassport,
         jobTitle: v.jobTitle,
+        cprExpiryDate: formatDateOnly(v.cprExpiryDate),
         attachments: v.attachments,
       })),
     };

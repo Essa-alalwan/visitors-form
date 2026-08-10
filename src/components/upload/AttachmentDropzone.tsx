@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
-import { Controller, useFormContext } from "react-hook-form";
-import { UploadCloud } from "lucide-react";
+import { Controller, useFormContext, useWatch } from "react-hook-form";
+import { UploadCloud, File as FileIcon } from "lucide-react";
 import clsx from "clsx";
 import { FieldError } from "../feedback/FieldError";
 import { FilePreviewItem } from "./FilePreviewItem";
@@ -26,6 +26,11 @@ export function AttachmentDropzone({
   const error = getFieldError(errors, name);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const existingPathName = name.replace(/\.file$/, ".existingPath");
+  const existingPath: string | undefined = useWatch({
+    control,
+    name: existingPathName,
+  });
 
   return (
     <div>
@@ -50,6 +55,42 @@ export function AttachmentDropzone({
                 <FilePreviewItem
                   file={file}
                   onRemove={() => field.onChange(undefined)}
+                />
+              </div>
+            );
+          }
+
+          if (existingPath) {
+            const fileName = existingPath.split("/").pop() || "Attached file";
+            return (
+              <div
+                id={name}
+                className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+                  <FileIcon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-slate-800">
+                    {fileName}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Already attached — Replace to change it
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-50"
+                >
+                  Replace
+                </button>
+                <input
+                  ref={inputRef}
+                  type="file"
+                  className="hidden"
+                  accept={ACCEPTED_FILE_EXTENSIONS}
+                  onChange={(e) => handleFiles(e.target.files)}
                 />
               </div>
             );

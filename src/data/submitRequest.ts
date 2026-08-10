@@ -51,8 +51,15 @@ function parseSubmitResult(value: unknown): SubmitResult | null {
   return null;
 }
 
+export interface SubmitRequestOptions {
+  saveProfile?: boolean;
+  accountEmail?: string;
+  sessionToken?: string;
+}
+
 export async function submitRequest(
   payload: SubmissionPayload,
+  options?: SubmitRequestOptions,
 ): Promise<SubmitResult> {
   if (!APPS_SCRIPT_URL) {
     return {
@@ -72,6 +79,14 @@ export async function submitRequest(
     };
   }
 
+  const body = {
+    action: "submitRequest",
+    ...wirePayload,
+    saveProfile: options?.saveProfile || undefined,
+    accountEmail: options?.accountEmail || undefined,
+    sessionToken: options?.sessionToken || undefined,
+  };
+
   let response: Response;
   try {
     response = await fetch(APPS_SCRIPT_URL, {
@@ -81,7 +96,7 @@ export async function submitRequest(
         // CORS preflight request that Apps Script Web Apps handle poorly.
         "Content-Type": "text/plain;charset=utf-8",
       },
-      body: JSON.stringify(wirePayload),
+      body: JSON.stringify(body),
     });
   } catch {
     return {

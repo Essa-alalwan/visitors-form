@@ -1,6 +1,10 @@
 export interface AttachmentPayload {
   id: string;
-  file: File;
+  file?: File;
+  // Set when this attachment references a file already on the server from
+  // a past submission (loaded via "My Requests" for editing) instead of a
+  // freshly chosen browser file — mutually exclusive with `file`.
+  existingPath?: string;
   description: string;
   remarks?: string;
 }
@@ -10,6 +14,7 @@ export interface VisitorPayload {
   name: string;
   cprOrPassport: string;
   jobTitle: string;
+  cprExpiryDate: string;
   attachments: AttachmentPayload[];
 }
 
@@ -57,6 +62,7 @@ export interface BaseSubmissionPayload {
   department: string;
   visitPurpose: string;
   requestRemarks?: string;
+  existingRequestId?: string;
 }
 
 export type SubmissionPayload = BaseSubmissionPayload &

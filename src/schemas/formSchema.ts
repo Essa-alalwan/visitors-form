@@ -5,12 +5,18 @@ import {
   MAX_FILE_SIZE_MB,
 } from "../utils/constants";
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const attachmentSchema = z.object({
   id: z.string(),
+  // Set when this attachment references a file already uploaded on a past
+  // submission (loaded via "My Requests" for editing) rather than a fresh
+  // browser File — see getCrossFieldIssues for the "one of the two is
+  // required" rule, kept out of zod for the same reason as other
+  // cross-field checks in this file.
+  existingPath: z.string().optional(),
   file: z
-    .custom<File>((val) => val instanceof File, {
+    .custom<File | undefined>((val) => val === undefined || val instanceof File, {
       message: "Please attach a file",
     })
     .refine(
@@ -22,7 +28,8 @@ export const attachmentSchema = z.object({
         !(f instanceof File) ||
         (ACCEPTED_FILE_TYPES as readonly string[]).includes(f.type),
       "Only PDF, JPG, or PNG files are allowed",
-    ),
+    )
+    .optional(),
   description: z.string().min(1, "Please describe this document"),
   remarks: z.string().optional(),
 });
@@ -34,6 +41,7 @@ export const visitorSchema = z.object({
     .string()
     .min(1, "Please enter a CPR card or passport number"),
   jobTitle: z.string().min(1, "Please enter a job title"),
+  cprExpiryDate: z.date().optional(),
   attachments: z
     .array(attachmentSchema)
     .min(1, "Please add at least one attachment"),
@@ -102,12 +110,15 @@ const baseFormSchema = z.object({
 
   visitKind: z.string().optional(),
   visitors: z.array(visitorSchema).optional(),
+  bringPPE: z.boolean().optional(),
 
   materialDetails: materialDetailsSchema.optional(),
   materials: z.array(materialItemSchema).optional(),
 
   equipmentDetails: equipmentDetailsSchema.optional(),
   equipment: z.array(equipmentItemSchema).optional(),
+
+  agreeToTerms: z.boolean().optional(),
 });
 
 // Cross-field rules deliberately live OUTSIDE zod (as a plain function,
@@ -119,6 +130,21 @@ const baseFormSchema = z.object({
 // would make "Please choose a visit kind" silently vanish even though
 // visitKind was never filled in. Running this independently guarantees
 // these checks always apply, regardless of what else is invalid.
+function checkAttachmentFiles(
+  attachments: { file?: File; existingPath?: string }[] | undefined,
+  basePath: (string | number)[],
+  issues: { path: string[]; message: string }[],
+) {
+  attachments?.forEach((att, index) => {
+    if (!att.file && !att.existingPath) {
+      issues.push({
+        path: [...basePath, "attachments", String(index), "file"].map(String),
+        message: "Please attach a file",
+      });
+    }
+  });
+}
+
 export function getCrossFieldIssues(
   data: Partial<FormValues>,
 ): { path: string[]; message: string }[] {
@@ -141,12 +167,33 @@ export function getCrossFieldIssues(
     if (!data.visitors || data.visitors.length === 0) {
       issues.push({ path: ["visitors"], message: "Please add at least one visitor" });
     }
+    data.visitors?.forEach((visitor, index) => {
+      if (!visitor.cprExpiryDate) {
+        issues.push({
+          path: ["visitors", String(index), "cprExpiryDate"],
+          message: "Please choose a CPR/Passport expiry date",
+        });
+      }
+      checkAttachmentFiles(visitor.attachments, ["visitors", index], issues);
+    });
+    if (
+      (data.visitKind === "Field Work" || data.visitKind === "Both") &&
+      !data.bringPPE
+    ) {
+      issues.push({
+        path: ["bringPPE"],
+        message: "Please confirm you will bring appropriate PPE",
+      });
+    }
   }
 
   if (data.requestType === "material") {
     if (!data.materials || data.materials.length === 0) {
       issues.push({ path: ["materials"], message: "Please add at least one material item" });
     }
+    data.materials?.forEach((item, index) => {
+      checkAttachmentFiles(item.attachments, ["materials", index], issues);
+    });
   }
 
   if (data.requestType === "equipment") {
@@ -159,6 +206,16 @@ export function getCrossFieldIssues(
     if (!data.equipment || data.equipment.length === 0) {
       issues.push({ path: ["equipment"], message: "Please add at least one equipment item" });
     }
+    data.equipment?.forEach((item, index) => {
+      checkAttachmentFiles(item.attachments, ["equipment", index], issues);
+    });
+  }
+
+  if (!data.agreeToTerms) {
+    issues.push({
+      path: ["agreeToTerms"],
+      message: "Please agree to the Terms & Conditions to continue",
+    });
   }
 
   return issues;
@@ -186,10 +243,11 @@ export const STEP_FIELD_NAMES: Record<number, (keyof FormValues)[]> = {
   3: [
     "visitKind",
     "visitors",
+    "bringPPE",
     "materialDetails",
     "materials",
     "equipmentDetails",
     "equipment",
   ],
-  4: ["visitPurpose", "requestRemarks"],
+  4: ["visitPurpose", "requestRemarks", "agreeToTerms"],
 };

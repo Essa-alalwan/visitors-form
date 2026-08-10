@@ -1,21 +1,33 @@
 import { nanoid } from "nanoid";
-import { useFieldArray, useFormContext } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { SelectField } from "../../components/fields/SelectField";
 import { TextField } from "../../components/fields/TextField";
+import { DateTimeField } from "../../components/fields/DateTimeField";
+import { CheckboxField } from "../../components/fields/CheckboxField";
 import { RepeatableSection } from "../../components/repeatable/RepeatableSection";
 import { RepeatableCard } from "../../components/repeatable/RepeatableCard";
 import { AttachmentList } from "../../components/repeatable/AttachmentList";
 import { VISIT_KINDS } from "../../utils/constants";
 import { getFieldError } from "../../utils/getFieldError";
 import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
+import { useProfile } from "../../context/ProfileContext";
 
 function blankVisitor() {
-  return { id: nanoid(), name: "", cprOrPassport: "", jobTitle: "", attachments: [] };
+  return {
+    id: nanoid(),
+    name: "",
+    cprOrPassport: "",
+    jobTitle: "",
+    cprExpiryDate: undefined,
+    attachments: [],
+  };
 }
 
 export function VisitorsSection() {
   const {
     control,
+    setValue,
     formState: { errors },
     clearErrors,
   } = useFormContext();
@@ -24,8 +36,28 @@ export function VisitorsSection() {
     name: "visitors",
   });
   const arrayError = getFieldError(errors, "visitors");
+  const visitKind = useWatch({ control, name: "visitKind" });
+  const requiresPPE = visitKind === "Field Work" || visitKind === "Both";
+  const { profile, isVerified } = useProfile();
+  const prefillApplied = useRef(false);
 
   useEnsureOneEntry(fields, append, blankVisitor);
+
+  useEffect(() => {
+    if (!isVerified || !profile || prefillApplied.current || fields.length === 0) {
+      return;
+    }
+    prefillApplied.current = true;
+
+    if (profile.visitorName) setValue("visitors.0.name", profile.visitorName);
+    if (profile.cprOrPassport) {
+      setValue("visitors.0.cprOrPassport", profile.cprOrPassport);
+    }
+    if (profile.jobTitle) setValue("visitors.0.jobTitle", profile.jobTitle);
+    if (profile.cprExpiryDate) {
+      setValue("visitors.0.cprExpiryDate", new Date(profile.cprExpiryDate));
+    }
+  }, [isVerified, profile, fields.length, setValue]);
 
   return (
     <div className="space-y-6">
@@ -35,6 +67,14 @@ export function VisitorsSection() {
         options={VISIT_KINDS}
         required
       />
+
+      {requiresPPE && (
+        <CheckboxField
+          name="bringPPE"
+          label="I confirm I will bring appropriate PPE (Personal Protective Equipment) for this visit"
+          required
+        />
+      )}
 
       <RepeatableSection
         title="Visitors"
@@ -61,6 +101,12 @@ export function VisitorsSection() {
               name={`visitors.${index}.cprOrPassport`}
               label="CPR Card or Passport No"
               required
+            />
+            <DateTimeField
+              name={`visitors.${index}.cprExpiryDate`}
+              label="CPR/Passport Expiry Date"
+              required
+              showTime={false}
             />
             <TextField
               name={`visitors.${index}.jobTitle`}

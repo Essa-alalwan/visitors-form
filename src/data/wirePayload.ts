@@ -11,9 +11,13 @@ import type { AttachmentPayload, SubmissionPayload } from "./payloadTypes";
  * using clean, consistent internal field names.
  */
 export interface WireAttachment {
-  name: string;
-  mimeType: string;
-  data: string; // base64, without the "data:...;base64," prefix
+  name?: string;
+  mimeType?: string;
+  data?: string; // base64, without the "data:...;base64," prefix
+  // Set instead of name/mimeType/data when this attachment references a
+  // file already stored on the server from a past submission — the
+  // backend reuses it as-is instead of writing a new file.
+  existingPath?: string;
   description: string;
   remarks?: string;
 }
@@ -22,6 +26,7 @@ interface WireVisitor {
   visitorName: string;
   cprPassport: string;
   jobTitle: string;
+  cprExpiryDate: string;
   attachments: WireAttachment[];
 }
 
@@ -54,6 +59,7 @@ interface WireBase {
   department: string;
   visitPurpose: string;
   requestRemarks?: string;
+  existingRequestId?: string;
 }
 
 export type WireSubmissionPayload = WireBase &
@@ -94,10 +100,19 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 async function toWireAttachment(a: AttachmentPayload): Promise<WireAttachment> {
+  if (!a.file && a.existingPath) {
+    return {
+      existingPath: a.existingPath,
+      description: a.description,
+      remarks: a.remarks,
+    };
+  }
+
+  const file = a.file as File;
   return {
-    name: a.file.name,
-    mimeType: a.file.type || "application/octet-stream",
-    data: await fileToBase64(a.file),
+    name: file.name,
+    mimeType: file.type || "application/octet-stream",
+    data: await fileToBase64(file),
     description: a.description,
     remarks: a.remarks,
   };
@@ -132,6 +147,7 @@ export async function toWirePayload(
     department: payload.department,
     visitPurpose: payload.visitPurpose,
     requestRemarks: payload.requestRemarks,
+    existingRequestId: payload.existingRequestId,
   };
 
   if (payload.requestType === "visitors") {
@@ -144,6 +160,7 @@ export async function toWirePayload(
           visitorName: v.name,
           cprPassport: v.cprOrPassport,
           jobTitle: v.jobTitle,
+          cprExpiryDate: v.cprExpiryDate,
           attachments: await Promise.all(v.attachments.map(toWireAttachment)),
         })),
       ),

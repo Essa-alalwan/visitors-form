@@ -53,6 +53,12 @@ export function ReviewSummary() {
       {values.requestType === "visitors" && (
         <SummarySection title={`Visitors (${values.visitors?.length ?? 0})`}>
           <SummaryRow label="Visit Kind" value={values.visitKind} />
+          {(values.visitKind === "Field Work" || values.visitKind === "Both") && (
+            <SummaryRow
+              label="PPE Confirmed"
+              value={values.bringPPE ? "Yes" : null}
+            />
+          )}
           {(values.visitors ?? []).map((visitor, index) => (
             <div
               key={visitor.id}
@@ -63,6 +69,12 @@ export function ReviewSummary() {
               </p>
               <p className="text-xs text-slate-500">
                 {visitor.jobTitle} &middot; {visitor.cprOrPassport}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                CPR/Passport Expiry:{" "}
+                {visitor.cprExpiryDate instanceof Date
+                  ? format(visitor.cprExpiryDate, "d MMM yyyy")
+                  : "—"}
               </p>
               <p className="mt-1 text-xs text-slate-500">
                 Attachments: {attachmentNames(visitor.attachments)}
