@@ -32,6 +32,7 @@ export const attachmentSchema = z.object({
     .optional(),
   description: z.string().min(1, "Please describe this document"),
   remarks: z.string().optional(),
+  expiryDate: z.date().optional(),
 });
 
 export const visitorSchema = z.object({

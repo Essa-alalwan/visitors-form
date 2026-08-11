@@ -14,11 +14,13 @@ function StepperControl({
   suffix,
   min,
   max,
+  step = 1,
 }: {
   name: string;
   suffix: string;
   min: number;
   max: number;
+  step?: number;
 }) {
   const { watch, setValue } = useFormContext();
   const value: number = watch(name) ?? 0;
@@ -32,7 +34,7 @@ function StepperControl({
     <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1.5">
       <button
         type="button"
-        onClick={() => update(value - 1)}
+        onClick={() => update(value - step)}
         aria-label={`Decrease ${suffix}`}
         className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-primary-700 focus-visible:outline-2 focus-visible:outline-primary-600"
       >
@@ -46,7 +48,7 @@ function StepperControl({
       </div>
       <button
         type="button"
-        onClick={() => update(value + 1)}
+        onClick={() => update(value + step)}
         aria-label={`Increase ${suffix}`}
         className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-primary-700 focus-visible:outline-2 focus-visible:outline-primary-600"
       >
@@ -66,7 +68,13 @@ export function DurationStepper({
     <FieldShell label={label} helperText={helperText}>
       <div className="flex flex-wrap gap-3">
         <StepperControl name={hoursName} suffix="hrs" min={0} max={999} />
-        <StepperControl name={minutesName} suffix="min" min={0} max={59} />
+        <StepperControl
+          name={minutesName}
+          suffix="min"
+          min={0}
+          max={45}
+          step={15}
+        />
       </div>
     </FieldShell>
   );

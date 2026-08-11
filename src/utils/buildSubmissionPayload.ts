@@ -1,5 +1,5 @@
 import type { FormValues } from "../schemas/formSchema";
-import type { SubmissionPayload } from "../data/payloadTypes";
+import type { AttachmentPayload, SubmissionPayload } from "../data/payloadTypes";
 
 function formatDuration(hours?: number, minutes?: number): string | undefined {
   if (!hours && !minutes) return undefined;
@@ -14,6 +14,26 @@ function formatDateOnly(date?: Date): string {
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+function formatAttachments(
+  attachments: {
+    id: string;
+    file?: File;
+    existingPath?: string;
+    description: string;
+    remarks?: string;
+    expiryDate?: Date;
+  }[],
+): AttachmentPayload[] {
+  return attachments.map((a) => ({
+    id: a.id,
+    file: a.file,
+    existingPath: a.existingPath,
+    description: a.description,
+    remarks: a.remarks,
+    expiryDate: formatDateOnly(a.expiryDate) || undefined,
+  }));
 }
 
 export function buildSubmissionPayload(
@@ -33,6 +53,7 @@ export function buildSubmissionPayload(
     visitPurpose: values.visitPurpose,
     requestRemarks: values.requestRemarks || undefined,
     existingRequestId: existingRequestId || undefined,
+    bringPPE: values.bringPPE || false,
   };
 
   if (values.requestType === "visitors") {
@@ -46,7 +67,7 @@ export function buildSubmissionPayload(
         cprOrPassport: v.cprOrPassport,
         jobTitle: v.jobTitle,
         cprExpiryDate: formatDateOnly(v.cprExpiryDate),
-        attachments: v.attachments,
+        attachments: formatAttachments(v.attachments),
       })),
     };
   }
@@ -72,7 +93,7 @@ export function buildSubmissionPayload(
           uom: m.uom,
           pat: m.pat as string,
           remarks: m.remarks,
-          attachments: m.attachments,
+          attachments: formatAttachments(m.attachments),
         })),
       },
     };
@@ -92,7 +113,7 @@ export function buildSubmissionPayload(
       name: e.name,
       operatorLicenseNo: e.operatorLicenseNo,
       remarks: e.remarks,
-      attachments: e.attachments,
+      attachments: formatAttachments(e.attachments),
     })),
   };
 }

@@ -4,14 +4,27 @@ import { RepeatableSection } from "./RepeatableSection";
 import { RepeatableCard } from "./RepeatableCard";
 import { AttachmentDropzone } from "../upload/AttachmentDropzone";
 import { TextField } from "../fields/TextField";
+import { DateTimeField } from "../fields/DateTimeField";
 import { getFieldError } from "../../utils/getFieldError";
 import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
 
 function blankAttachment() {
-  return { id: nanoid(), file: undefined, description: "", remarks: "" };
+  return {
+    id: nanoid(),
+    file: undefined,
+    description: "",
+    remarks: "",
+    expiryDate: undefined,
+  };
 }
 
-export function AttachmentList({ parentName }: { parentName: string }) {
+export function AttachmentList({
+  parentName,
+  showExpiryDate = false,
+}: {
+  parentName: string;
+  showExpiryDate?: boolean;
+}) {
   const {
     control,
     formState: { errors },
@@ -52,6 +65,14 @@ export function AttachmentList({ parentName }: { parentName: string }) {
             label="Attachment Remarks"
             placeholder="Optional"
           />
+          {showExpiryDate && (
+            <DateTimeField
+              name={`${name}.${index}.expiryDate`}
+              label="Document Expiry Date"
+              helperText="Optional"
+              showTime={false}
+            />
+          )}
         </RepeatableCard>
       )}
     />

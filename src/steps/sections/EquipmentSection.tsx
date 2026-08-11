@@ -98,7 +98,7 @@ export function EquipmentSection() {
               placeholder="Optional"
               rows={2}
             />
-            <AttachmentList parentName={`equipment.${index}`} />
+            <AttachmentList parentName={`equipment.${index}`} showExpiryDate />
           </RepeatableCard>
         )}
       />

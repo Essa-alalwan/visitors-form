@@ -53,24 +53,24 @@ function ProfilePrefill() {
     applied.current.add(requestType);
 
     if (profile.companyName) {
-      setValue("companyName", profile.companyName, { shouldDirty: false });
+      setValue("companyName", String(profile.companyName), { shouldDirty: false });
     }
 
     if (requestType === "material") {
       if (profile.driverReceiverId) {
-        setValue("materialDetails.driverReceiverId", profile.driverReceiverId);
+        setValue("materialDetails.driverReceiverId", String(profile.driverReceiverId));
       }
       if (profile.vehiclePlateNo) {
-        setValue("materialDetails.vehiclePlateNo", profile.vehiclePlateNo);
+        setValue("materialDetails.vehiclePlateNo", String(profile.vehiclePlateNo));
       }
       if (profile.companyAddress) {
-        setValue("materialDetails.companyAddress", profile.companyAddress);
+        setValue("materialDetails.companyAddress", String(profile.companyAddress));
       }
     }
 
     if (requestType === "equipment") {
       if (profile.equipmentCreatedBy) {
-        setValue("equipmentDetails.createdBy", profile.equipmentCreatedBy);
+        setValue("equipmentDetails.createdBy", String(profile.equipmentCreatedBy));
       }
       if (profile.equipmentCprExpiryDate) {
         setValue("equipmentDetails.cprExpiryDate", new Date(profile.equipmentCprExpiryDate));

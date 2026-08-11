@@ -49,13 +49,16 @@ export function VisitorsSection() {
     }
     prefillApplied.current = true;
 
-    if (profile.visitorName) setValue("visitors.0.name", profile.visitorName);
+    if (profile.visitorName) setValue("visitors.0.name", String(profile.visitorName));
     if (profile.cprOrPassport) {
-      setValue("visitors.0.cprOrPassport", profile.cprOrPassport);
+      setValue("visitors.0.cprOrPassport", String(profile.cprOrPassport));
     }
-    if (profile.jobTitle) setValue("visitors.0.jobTitle", profile.jobTitle);
+    if (profile.jobTitle) setValue("visitors.0.jobTitle", String(profile.jobTitle));
     if (profile.cprExpiryDate) {
       setValue("visitors.0.cprExpiryDate", new Date(profile.cprExpiryDate));
+    }
+    if (profile.ppeConfirmed === "Yes") {
+      setValue("bringPPE", true);
     }
   }, [isVerified, profile, fields.length, setValue]);
 
@@ -65,6 +68,7 @@ export function VisitorsSection() {
         name="visitKind"
         label="Visit Kind"
         options={VISIT_KINDS}
+        optionLabels={{ Both: "Field Work and Office Work" }}
         required
       />
 
@@ -113,7 +117,7 @@ export function VisitorsSection() {
               label="Job Title"
               required
             />
-            <AttachmentList parentName={`visitors.${index}`} />
+            <AttachmentList parentName={`visitors.${index}`} showExpiryDate />
           </RepeatableCard>
         )}
       />

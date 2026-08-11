@@ -7,6 +7,8 @@ export interface AttachmentPayload {
   existingPath?: string;
   description: string;
   remarks?: string;
+  // Visitors/Equipment only — the backend ignores this for Materials.
+  expiryDate?: string;
 }
 
 export interface VisitorPayload {
@@ -63,6 +65,7 @@ export interface BaseSubmissionPayload {
   visitPurpose: string;
   requestRemarks?: string;
   existingRequestId?: string;
+  bringPPE?: boolean;
 }
 
 export type SubmissionPayload = BaseSubmissionPayload &

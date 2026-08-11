@@ -20,6 +20,7 @@ export interface WireAttachment {
   existingPath?: string;
   description: string;
   remarks?: string;
+  expiryDate?: string;
 }
 
 interface WireVisitor {
@@ -60,6 +61,7 @@ interface WireBase {
   visitPurpose: string;
   requestRemarks?: string;
   existingRequestId?: string;
+  bringPPE?: boolean;
 }
 
 export type WireSubmissionPayload = WireBase &
@@ -105,6 +107,7 @@ async function toWireAttachment(a: AttachmentPayload): Promise<WireAttachment> {
       existingPath: a.existingPath,
       description: a.description,
       remarks: a.remarks,
+      expiryDate: a.expiryDate,
     };
   }
 
@@ -115,6 +118,7 @@ async function toWireAttachment(a: AttachmentPayload): Promise<WireAttachment> {
     data: await fileToBase64(file),
     description: a.description,
     remarks: a.remarks,
+    expiryDate: a.expiryDate,
   };
 }
 
@@ -148,6 +152,7 @@ export async function toWirePayload(
     visitPurpose: payload.visitPurpose,
     requestRemarks: payload.requestRemarks,
     existingRequestId: payload.existingRequestId,
+    bringPPE: payload.bringPPE,
   };
 
   if (payload.requestType === "visitors") {

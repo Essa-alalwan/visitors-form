@@ -17,12 +17,31 @@ import {
   formSchema,
   getCrossFieldIssues,
   EMAIL_REGEX,
+  STEP_FIELD_NAMES,
   type FormValues,
 } from "../schemas/formSchema";
+
+function findEarliestStepWithIssue(
+  issues: { path: string[] }[],
+): number | null {
+  let earliest: number | null = null;
+  for (const issue of issues) {
+    const field = issue.path[0];
+    for (const [stepStr, fields] of Object.entries(STEP_FIELD_NAMES)) {
+      if ((fields as string[]).includes(field)) {
+        const step = Number(stepStr);
+        if (earliest === null || step < earliest) earliest = step;
+        break;
+      }
+    }
+  }
+  return earliest;
+}
 
 export function Step4ReviewSubmit() {
   const {
     goBack,
+    goToStep,
     submissionStatus,
     setSubmissionStatus,
     referenceNumber,
@@ -113,6 +132,13 @@ export function Step4ReviewSubmit() {
             message: issue.message,
           });
         }
+      }
+      // Some failing fields (e.g. PPE confirmation) may live on an earlier
+      // step than the one currently shown — jump there so the error is
+      // actually visible instead of silently blocking submission.
+      const earliestStep = findEarliestStepWithIssue(allIssues);
+      if (earliestStep !== null && earliestStep < 4) {
+        goToStep(earliestStep);
       }
       return;
     }

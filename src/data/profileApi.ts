@@ -11,6 +11,7 @@ export interface RequesterProfileData {
   companyAddress?: string;
   equipmentCreatedBy?: string;
   equipmentCprExpiryDate?: string;
+  ppeConfirmed?: string;
 }
 
 export interface RequestHistoryEntry {
@@ -25,6 +26,10 @@ export interface DetailAttachment {
   description: string;
   remarks?: string;
   existingPath: string;
+  expiryDate?: string;
+  // Read-only, auto-computed by the sheet — informational only, not
+  // editable or resubmitted.
+  docValidity?: string;
 }
 
 export interface RequestDetail {

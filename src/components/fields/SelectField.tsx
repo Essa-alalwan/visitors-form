@@ -7,6 +7,7 @@ interface SelectFieldProps {
   name: string;
   label: string;
   options: readonly string[];
+  optionLabels?: Record<string, string>;
   required?: boolean;
   helperText?: string;
   placeholder?: string;
@@ -16,6 +17,7 @@ export function SelectField({
   name,
   label,
   options,
+  optionLabels,
   required,
   helperText,
   placeholder = "Select an option",
@@ -47,7 +49,7 @@ export function SelectField({
           </option>
           {options.map((option) => (
             <option key={option} value={option}>
-              {option}
+              {optionLabels?.[option] ?? option}
             </option>
           ))}
         </select>

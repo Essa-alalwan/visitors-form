@@ -2,12 +2,21 @@ import { nanoid } from "nanoid";
 import type { RequestDetail, DetailAttachment } from "../data/profileApi";
 import type { FormValues } from "../schemas/formSchema";
 
+// Defensive against the backend (or a transitional deploy of it) sending a
+// Sheets cell back as a raw number instead of a string — e.g. a CPR number,
+// vehicle plate, or license number. Every text field loaded from a past
+// request goes through this rather than trusting the wire type.
+function str(value: unknown): string {
+  return value === undefined || value === null ? "" : String(value);
+}
+
 function toAttachments(attachments: DetailAttachment[] | undefined) {
   return (attachments ?? []).map((a) => ({
     id: nanoid(),
-    existingPath: a.existingPath,
-    description: a.description,
-    remarks: a.remarks,
+    existingPath: str(a.existingPath),
+    description: str(a.description),
+    remarks: str(a.remarks),
+    expiryDate: toDate(a.expiryDate),
   }));
 }
 
@@ -27,21 +36,21 @@ export function detailToFormValues(detail: RequestDetail): Partial<FormValues> {
   const values: Partial<FormValues> = {
     requestType: REQUEST_TYPE_MAP[detail.requestType],
     visitDateTime: toDate(detail.visitDateTime),
-    companyName: detail.companyName || "",
-    contactEmail: detail.contactEmail || "",
-    aldurContactPerson: detail.contactPerson || "",
-    department: detail.department || "",
-    visitPurpose: detail.visitPurpose || "",
-    requestRemarks: detail.requestRemarks || "",
+    companyName: str(detail.companyName),
+    contactEmail: str(detail.contactEmail),
+    aldurContactPerson: str(detail.contactPerson),
+    department: str(detail.department),
+    visitPurpose: str(detail.visitPurpose),
+    requestRemarks: str(detail.requestRemarks),
   };
 
   if (detail.requestType === "Visitors") {
-    values.visitKind = detail.visitKind || "";
+    values.visitKind = str(detail.visitKind);
     values.visitors = (detail.visitors ?? []).map((v) => ({
       id: nanoid(),
-      name: v.visitorName,
-      cprOrPassport: v.cprPassport,
-      jobTitle: v.jobTitle,
+      name: str(v.visitorName),
+      cprOrPassport: str(v.cprPassport),
+      jobTitle: str(v.jobTitle),
       cprExpiryDate: toDate(v.cprExpiryDate),
       attachments: toAttachments(v.attachments),
     }));
@@ -49,37 +58,37 @@ export function detailToFormValues(detail: RequestDetail): Partial<FormValues> {
 
   if (detail.requestType === "Material Entry & Exit") {
     values.materialDetails = {
-      createdBy: detail.mrCreatedBy || "",
-      substanceDestination: detail.substanceDestination || "",
-      driverReceiverId: detail.driverId || "",
-      companyAddress: detail.mrCompanyAddress || "",
-      vehiclePlateNo: detail.vehiclePlateNo || "",
+      createdBy: str(detail.mrCreatedBy),
+      substanceDestination: str(detail.substanceDestination),
+      driverReceiverId: str(detail.driverId),
+      companyAddress: str(detail.mrCompanyAddress),
+      vehiclePlateNo: str(detail.vehiclePlateNo),
     };
     values.materials = (detail.materials ?? []).map((m) => ({
       id: nanoid(),
-      inOut: m.inOut,
-      returnable: m.returnable,
-      description: m.description,
-      quantity: m.quantity,
-      uom: m.uom,
-      pat: m.pat,
-      remarks: m.remarks,
+      inOut: str(m.inOut),
+      returnable: str(m.returnable),
+      description: str(m.description),
+      quantity: str(m.quantity),
+      uom: str(m.uom),
+      pat: str(m.pat),
+      remarks: str(m.remarks),
       attachments: toAttachments(m.attachments),
     }));
   }
 
   if (detail.requestType === "Equipment") {
     values.equipmentDetails = {
-      createdBy: detail.epCreatedBy || "",
+      createdBy: str(detail.epCreatedBy),
       cprExpiryDate: toDate(detail.epCprExpiryDate),
     };
     values.equipment = (detail.equipments ?? []).map((e) => ({
       id: nanoid(),
-      typeModel: e.typeModel,
-      plateNo: e.plateNo,
-      name: e.name,
-      operatorLicenseNo: e.operatorLicenseNo,
-      remarks: e.remarks,
+      typeModel: str(e.typeModel),
+      plateNo: str(e.plateNo),
+      name: str(e.name),
+      operatorLicenseNo: str(e.operatorLicenseNo),
+      remarks: str(e.remarks),
       attachments: toAttachments(e.attachments),
     }));
   }
