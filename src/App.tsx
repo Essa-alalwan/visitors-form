@@ -82,8 +82,15 @@ function ProfilePrefill() {
 }
 
 function WizardSteps() {
-  const { step, direction, totalSteps, goToStep, setReferenceNumber, setSubmissionStatus } =
-    useFormWizard();
+  const {
+    step,
+    direction,
+    totalSteps,
+    maxStepReached,
+    goToStep,
+    setReferenceNumber,
+    setSubmissionStatus,
+  } = useFormWizard();
   const { isVerified, email, sessionToken, history } = useProfile();
   const { reset } = useFormContext<FormValues>();
   const [showHistory, setShowHistory] = useState(false);
@@ -104,10 +111,9 @@ function WizardSteps() {
     // brand new request and the original stays untouched.
     setReferenceNumber(mode === "edit" ? requestId : null);
     setSubmissionStatus("idle");
-    // Edit jumps to Visit Details (step 2) so they can double check/adjust
-    // the visit itself; Resubmit skips straight to Review & Submit (step 4)
-    // since it's meant to be a quick "same as before, send it again".
-    goToStep(mode === "edit" ? 2 : 4);
+    // Both edit and resubmit land on Visit Details so the user can
+    // double check/adjust before continuing through the wizard.
+    goToStep(2);
     setShowHistory(false);
     return true;
   }
@@ -132,7 +138,12 @@ function WizardSteps() {
           </span>
         </button>
       )}
-      <ProgressIndicator step={step} totalSteps={totalSteps} />
+      <ProgressIndicator
+        step={step}
+        totalSteps={totalSteps}
+        maxStepReached={maxStepReached}
+        onStepClick={goToStep}
+      />
       <StepTransition stepKey={step} direction={direction}>
         {step === 1 && <Step1RequestType />}
         {step === 2 && <Step2VisitDetails />}

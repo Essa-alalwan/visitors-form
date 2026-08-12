@@ -7,6 +7,7 @@ interface FormWizardContextValue {
   step: number;
   direction: 1 | -1;
   totalSteps: number;
+  maxStepReached: number;
   goNext: () => void;
   goBack: () => void;
   goToStep: (step: number) => void;
@@ -22,6 +23,7 @@ const FormWizardContext = createContext<FormWizardContextValue | null>(null);
 export function FormWizardProvider({ children }: { children: ReactNode }) {
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState<1 | -1>(1);
+  const [maxStepReached, setMaxStepReached] = useState(1);
   const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>("idle");
   const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
 
@@ -30,10 +32,13 @@ export function FormWizardProvider({ children }: { children: ReactNode }) {
       step,
       direction,
       totalSteps: TOTAL_STEPS,
+      maxStepReached,
       goNext: () =>
         setStep((s) => {
           setDirection(1);
-          return Math.min(s + 1, TOTAL_STEPS);
+          const next = Math.min(s + 1, TOTAL_STEPS);
+          setMaxStepReached((m) => Math.max(m, next));
+          return next;
         }),
       goBack: () =>
         setStep((s) => {
@@ -43,7 +48,9 @@ export function FormWizardProvider({ children }: { children: ReactNode }) {
       goToStep: (target: number) =>
         setStep((s) => {
           setDirection(target >= s ? 1 : -1);
-          return Math.min(Math.max(target, 1), TOTAL_STEPS);
+          const next = Math.min(Math.max(target, 1), TOTAL_STEPS);
+          setMaxStepReached((m) => Math.max(m, next));
+          return next;
         }),
       submissionStatus,
       setSubmissionStatus,
@@ -52,11 +59,12 @@ export function FormWizardProvider({ children }: { children: ReactNode }) {
       reset: () => {
         setStep(1);
         setDirection(1);
+        setMaxStepReached(1);
         setSubmissionStatus("idle");
         setReferenceNumber(null);
       },
     }),
-    [step, direction, submissionStatus, referenceNumber],
+    [step, direction, maxStepReached, submissionStatus, referenceNumber],
   );
 
   return (

@@ -4,9 +4,13 @@ import { STEP_LABELS } from "../../utils/constants";
 export function ProgressIndicator({
   step,
   totalSteps,
+  maxStepReached,
+  onStepClick,
 }: {
   step: number;
   totalSteps: number;
+  maxStepReached: number;
+  onStepClick: (step: number) => void;
 }) {
   const percent = ((step - 1) / (totalSteps - 1)) * 100;
 
@@ -31,26 +35,36 @@ export function ProgressIndicator({
           const stepNum = index + 1;
           const state =
             stepNum < step ? "done" : stepNum === step ? "active" : "todo";
+          const clickable = stepNum !== step && stepNum <= maxStepReached;
           return (
-            <li key={label} className="flex items-center gap-1.5 text-xs">
-              <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold transition-colors ${
-                  state === "done"
-                    ? "bg-primary-600 text-white"
-                    : state === "active"
-                      ? "bg-primary-100 text-primary-700 ring-2 ring-primary-500"
-                      : "bg-slate-200 text-slate-500"
+            <li key={label}>
+              <button
+                type="button"
+                disabled={!clickable}
+                onClick={() => onStepClick(stepNum)}
+                className={`flex items-center gap-1.5 text-xs ${
+                  clickable ? "cursor-pointer" : "cursor-default"
                 }`}
               >
-                {state === "done" ? <Check className="h-3 w-3" /> : stepNum}
-              </span>
-              <span
-                className={
-                  state === "todo" ? "text-slate-400" : "text-slate-600"
-                }
-              >
-                {label}
-              </span>
+                <span
+                  className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold transition-colors ${
+                    state === "done"
+                      ? "bg-primary-600 text-white"
+                      : state === "active"
+                        ? "bg-primary-100 text-primary-700 ring-2 ring-primary-500"
+                        : "bg-slate-200 text-slate-500"
+                  } ${clickable ? "hover:ring-2 hover:ring-primary-300" : ""}`}
+                >
+                  {state === "done" ? <Check className="h-3 w-3" /> : stepNum}
+                </span>
+                <span
+                  className={`${
+                    state === "todo" ? "text-slate-400" : "text-slate-600"
+                  } ${clickable ? "hover:text-primary-700" : ""}`}
+                >
+                  {label}
+                </span>
+              </button>
             </li>
           );
         })}

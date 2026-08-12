@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFormContext, type FieldPath } from "react-hook-form";
 import { Send } from "lucide-react";
 import { StepCard } from "../components/layout/StepCard";
@@ -55,7 +55,7 @@ export function Step4ReviewSubmit() {
     clearErrors,
     reset: resetFormValues,
   } = useFormContext<FormValues>();
-  const { email: verifiedEmail, sessionToken, refreshHistory } = useProfile();
+  const { email: verifiedEmail, isVerified, sessionToken, refreshHistory } = useProfile();
 
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [showTerms, setShowTerms] = useState(false);
@@ -63,11 +63,27 @@ export function Step4ReviewSubmit() {
   const [accountEmail, setAccountEmail] = useState("");
   const [accountEmailError, setAccountEmailError] = useState<string | null>(null);
   const [accountEmailTouched, setAccountEmailTouched] = useState(false);
+  const defaultedRef = useRef(false);
+
+  // Returning users already have an account — default "Save my info" to
+  // checked so they don't have to re-opt-in on every request. Guests (never
+  // verified) still start unchecked. Only applied once so it doesn't
+  // override a manual uncheck later in the session.
+  useEffect(() => {
+    if (defaultedRef.current || !isVerified || !verifiedEmail) return;
+    defaultedRef.current = true;
+    setSaveProfile(true);
+    setAccountEmail(verifiedEmail);
+  }, [isVerified, verifiedEmail]);
 
   function handleSaveProfileToggle(checked: boolean) {
     setSaveProfile(checked);
-    if (checked && !accountEmail) {
-      setAccountEmail(verifiedEmail || getValues("contactEmail") || "");
+    if (checked) {
+      if (isVerified && verifiedEmail) {
+        setAccountEmail(verifiedEmail);
+      } else if (!accountEmail) {
+        setAccountEmail(getValues("contactEmail") || "");
+      }
     }
   }
 
@@ -201,8 +217,9 @@ export function Step4ReviewSubmit() {
           {saveProfile && (
             <div className="mt-3 rounded-lg border border-primary-200 bg-white p-3">
               <p className="mb-2 text-xs text-slate-500">
-                Create an account to save your info — you'll use this email to
-                access your saved info and past requests next time.
+                {isVerified
+                  ? "Your info will be saved to the account you verified with."
+                  : "Create an account to save your info — you'll use this email to access your saved info and past requests next time."}
               </p>
               <label
                 htmlFor="account-email"
@@ -218,9 +235,20 @@ export function Step4ReviewSubmit() {
                 onChange={(e) => setAccountEmail(e.target.value)}
                 onBlur={() => setAccountEmailTouched(true)}
                 placeholder="you@example.com"
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                disabled={isVerified}
+                readOnly={isVerified}
+                className={
+                  isVerified
+                    ? "w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-500"
+                    : "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-slate-900 placeholder:text-slate-400 transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/40"
+                }
               />
-              {accountEmailTouched && accountEmailError && (
+              {isVerified && (
+                <p className="mt-1.5 text-xs text-slate-400">
+                  Locked to your verified email
+                </p>
+              )}
+              {!isVerified && accountEmailTouched && accountEmailError && (
                 <p className="mt-1.5 text-sm text-red-600">{accountEmailError}</p>
               )}
             </div>

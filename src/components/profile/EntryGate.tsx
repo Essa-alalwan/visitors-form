@@ -1,7 +1,13 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { UserRound, History, ArrowLeft } from "lucide-react";
 import { StepCard } from "../layout/StepCard";
 import { useProfile } from "../../context/ProfileContext";
+
+// Matches the backend's own resend cooldown (requestOtp_'s 60-second
+// throttle) — this is purely a UI countdown so people can see when
+// they're allowed to resend instead of guessing and hitting the
+// backend's "please wait" error.
+const RESEND_COOLDOWN_SECONDS = 60;
 
 function EmailStep() {
   const { sendCode, otpSending, otpError, backToEntry } = useProfile();
@@ -63,11 +69,24 @@ function EmailStep() {
 function CodeStep() {
   const { confirmCode, resendCode, otpSending, otpError, backToEntry } = useProfile();
   const [code, setCode] = useState("");
+  const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCooldown((c) => (c > 0 ? c - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!code.trim()) return;
     await confirmCode(code.trim());
+  }
+
+  async function handleResend() {
+    const ok = await resendCode();
+    if (ok) setCooldown(RESEND_COOLDOWN_SECONDS);
   }
 
   return (
@@ -98,11 +117,13 @@ function CodeStep() {
 
         <button
           type="button"
-          onClick={() => resendCode()}
-          disabled={otpSending}
+          onClick={handleResend}
+          disabled={otpSending || cooldown > 0}
           className="text-sm font-medium text-primary-700 hover:text-primary-800 disabled:opacity-60"
         >
-          Didn't get it? Send a new code
+          {cooldown > 0
+            ? `Didn't get it? Resend in ${cooldown}s`
+            : "Didn't get it? Send a new code"}
         </button>
 
         <div className="flex items-center justify-between gap-3">
