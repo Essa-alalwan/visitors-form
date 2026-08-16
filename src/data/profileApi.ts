@@ -19,9 +19,20 @@ export interface RequesterProfileData {
 export interface RequestHistoryEntry {
   requestId: string;
   requestType: string;
+  visitKind?: string;
   visitDateTime?: string;
   status?: string;
   submittedAt?: string;
+  // Real per-stage approval data, sourced from the same Requests sheet
+  // columns the separate "Access App - Emails Only" project reads to
+  // drive the approval-chain emails — distinct from the generic
+  // `status` field above.
+  deptStatus?: string;
+  deptBy?: string;
+  deptRemarks?: string;
+  hsseStatus?: string;
+  hsseBy?: string;
+  hsseRemarks?: string;
 }
 
 export interface DetailAttachment {

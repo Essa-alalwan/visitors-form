@@ -2,6 +2,60 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Inbox, PencilLine, Copy, Loader2 } from "lucide-react";
 import { useProfile } from "../../context/ProfileContext";
+import type { RequestHistoryEntry } from "../../data/profileApi";
+
+// Mirrors Emails.gs's own WF_statusKind_ normalization so the frontend
+// agrees with the same source of truth the approval-chain emails use.
+function approvalBadgeClasses(status: string): string {
+  const lower = status.toLowerCase();
+  if (lower.includes("approve")) {
+    return "bg-green-50 text-green-700 ring-green-200";
+  }
+  if (lower.includes("reject") || lower.includes("declin")) {
+    return "bg-red-50 text-red-700 ring-red-200";
+  }
+  return "bg-amber-50 text-amber-700 ring-amber-200";
+}
+
+function ApprovalStageRow({
+  label,
+  status,
+  by,
+  remarks,
+}: {
+  label: string;
+  status?: string;
+  by?: string;
+  remarks?: string;
+}) {
+  const displayStatus = status && status.trim() ? status : "Pending";
+
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+      <span className="font-medium text-slate-500">{label}:</span>
+      <span
+        className={`rounded-full px-2 py-0.5 font-medium ring-1 ${approvalBadgeClasses(displayStatus)}`}
+      >
+        {displayStatus}
+      </span>
+      {by && <span className="text-slate-500">by {by}</span>}
+      {remarks && (
+        <span className="w-full text-slate-500">&ldquo;{remarks}&rdquo;</span>
+      )}
+    </div>
+  );
+}
+
+function requiresHsseStage(item: RequestHistoryEntry): boolean {
+  // Purely visit-kind driven — the HSSE_STATUS column can carry a
+  // non-empty default ("Pending Action") even for requests where HSSE
+  // is never actually part of the approval path, so its presence can't
+  // be used as a signal here.
+  return (
+    item.requestType === "Visitors" &&
+    (item.visitKind === "Field Work" || item.visitKind === "Both")
+  );
+}
 
 export function HistoryModal({
   open,
@@ -98,6 +152,20 @@ export function HistoryModal({
                         {item.requestType}
                         {item.visitDateTime ? ` · ${item.visitDateTime}` : ""}
                       </p>
+                      <ApprovalStageRow
+                        label="Department"
+                        status={item.deptStatus}
+                        by={item.deptBy}
+                        remarks={item.deptRemarks}
+                      />
+                      {requiresHsseStage(item) && (
+                        <ApprovalStageRow
+                          label="HSSE"
+                          status={item.hsseStatus}
+                          by={item.hsseBy}
+                          remarks={item.hsseRemarks}
+                        />
+                      )}
                       <div className="mt-2 flex items-center gap-4">
                         <button
                           type="button"
