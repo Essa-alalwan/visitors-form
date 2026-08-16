@@ -1,12 +1,19 @@
 import { nanoid } from "nanoid";
-import { useFieldArray, useFormContext } from "react-hook-form";
+import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { RepeatableSection } from "./RepeatableSection";
 import { RepeatableCard } from "./RepeatableCard";
 import { AttachmentDropzone } from "../upload/AttachmentDropzone";
 import { TextField } from "../fields/TextField";
 import { DateTimeField } from "../fields/DateTimeField";
+import { ExpiryBadge } from "../feedback/ExpiryBadge";
 import { getFieldError } from "../../utils/getFieldError";
 import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
+
+function AttachmentExpiryBadge({ name }: { name: string }) {
+  const { control } = useFormContext();
+  const value = useWatch({ control, name: `${name}.expiryDate` });
+  return <ExpiryBadge date={value} />;
+}
 
 function blankAttachment() {
   return {
@@ -66,12 +73,17 @@ export function AttachmentList({
             placeholder="Optional"
           />
           {showExpiryDate && (
-            <DateTimeField
-              name={`${name}.${index}.expiryDate`}
-              label="Document Expiry Date"
-              helperText="Optional"
-              showTime={false}
-            />
+            <>
+              <DateTimeField
+                name={`${name}.${index}.expiryDate`}
+                label="Document Expiry Date"
+                helperText="Optional"
+                showTime={false}
+              />
+              <div className="-mt-3 flex justify-end">
+                <AttachmentExpiryBadge name={`${name}.${index}`} />
+              </div>
+            </>
           )}
         </RepeatableCard>
       )}

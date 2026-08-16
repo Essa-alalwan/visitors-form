@@ -33,6 +33,10 @@ export const attachmentSchema = z.object({
   description: z.string().min(1, "Please describe this document"),
   remarks: z.string().optional(),
   expiryDate: z.date().optional(),
+  // Read-only status computed server-side for an existing attachment
+  // (e.g. "Valid" / "Expiring Soon" / "Expired") — display-only, never
+  // edited or submitted back.
+  docValidity: z.string().optional(),
 });
 
 export const visitorSchema = z.object({

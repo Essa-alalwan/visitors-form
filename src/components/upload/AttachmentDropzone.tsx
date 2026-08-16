@@ -10,6 +10,20 @@ import {
   MAX_FILE_SIZE_MB,
 } from "../../utils/constants";
 
+function docValidityBadgeClasses(text: string): string {
+  const lower = text.toLowerCase();
+  if (lower.includes("expired")) {
+    return "bg-red-50 text-red-700 ring-red-200";
+  }
+  if (lower.includes("expir")) {
+    return "bg-amber-50 text-amber-700 ring-amber-200";
+  }
+  if (lower.includes("valid")) {
+    return "bg-green-50 text-green-700 ring-green-200";
+  }
+  return "bg-white text-slate-600 ring-slate-200";
+}
+
 export function AttachmentDropzone({
   name,
   label = "Attachment File",
@@ -30,6 +44,11 @@ export function AttachmentDropzone({
   const existingPath: string | undefined = useWatch({
     control,
     name: existingPathName,
+  });
+  const docValidityName = name.replace(/\.file$/, ".docValidity");
+  const docValidity: string | undefined = useWatch({
+    control,
+    name: docValidityName,
   });
 
   return (
@@ -71,9 +90,18 @@ export function AttachmentDropzone({
                   <FileIcon className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-800">
-                    {fileName}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-medium text-slate-800">
+                      {fileName}
+                    </p>
+                    {docValidity && (
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${docValidityBadgeClasses(docValidity)}`}
+                      >
+                        {docValidity}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-slate-500">
                     Already attached — Replace to change it
                   </p>

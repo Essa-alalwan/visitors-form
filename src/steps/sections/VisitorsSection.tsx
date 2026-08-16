@@ -8,10 +8,17 @@ import { CheckboxField } from "../../components/fields/CheckboxField";
 import { RepeatableSection } from "../../components/repeatable/RepeatableSection";
 import { RepeatableCard } from "../../components/repeatable/RepeatableCard";
 import { AttachmentList } from "../../components/repeatable/AttachmentList";
+import { ExpiryBadge } from "../../components/feedback/ExpiryBadge";
 import { VISIT_KINDS } from "../../utils/constants";
 import { getFieldError } from "../../utils/getFieldError";
 import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
 import { useProfile } from "../../context/ProfileContext";
+
+function VisitorCprExpiryBadge({ index }: { index: number }) {
+  const { control } = useFormContext();
+  const value = useWatch({ control, name: `visitors.${index}.cprExpiryDate` });
+  return <ExpiryBadge date={value} />;
+}
 
 function blankVisitor() {
   return {
@@ -112,6 +119,9 @@ export function VisitorsSection() {
               required
               showTime={false}
             />
+            <div className="-mt-3 flex justify-end">
+              <VisitorCprExpiryBadge index={index} />
+            </div>
             <TextField
               name={`visitors.${index}.jobTitle`}
               label="Job Title"

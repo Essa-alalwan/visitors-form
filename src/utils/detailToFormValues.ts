@@ -17,6 +17,7 @@ function toAttachments(attachments: DetailAttachment[] | undefined) {
     description: str(a.description),
     remarks: str(a.remarks),
     expiryDate: toDate(a.expiryDate),
+    docValidity: str(a.docValidity),
   }));
 }
 

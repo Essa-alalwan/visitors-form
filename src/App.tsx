@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FormProvider, useForm, useFormContext, useWatch } from "react-hook-form";
-import { History } from "lucide-react";
+import { History, AlertTriangle } from "lucide-react";
 import { AppShell } from "./components/layout/AppShell";
 import { ProgressIndicator } from "./components/layout/ProgressIndicator";
 import { StepTransition } from "./components/layout/StepTransition";
@@ -10,6 +10,7 @@ import { EntryGate } from "./components/profile/EntryGate";
 import { HistoryModal } from "./components/profile/HistoryModal";
 import { getRequestDetail } from "./data/profileApi";
 import { detailToFormValues } from "./utils/detailToFormValues";
+import { getExpiryStatus } from "./utils/expiryStatus";
 import type { FormValues } from "./schemas/formSchema";
 import { Step1RequestType } from "./steps/Step1RequestType";
 import { Step2VisitDetails } from "./steps/Step2VisitDetails";
@@ -81,6 +82,49 @@ function ProfilePrefill() {
   return null;
 }
 
+/** Warns a returning, verified user at login time if their saved CPR/
+ * Passport or Equipment CPR expiry is coming up soon or has already
+ * passed. Attachment-level expiry isn't covered here — attachments
+ * belong to specific past requests, not the reusable saved profile, so
+ * there's no profile-level source of truth to check at login. */
+function ProfileExpiryBanner() {
+  const { profile, isVerified } = useProfile();
+  if (!isVerified || !profile) return null;
+
+  const cprStatus = getExpiryStatus(profile.cprExpiryDate);
+  const equipmentCprStatus = getExpiryStatus(profile.equipmentCprExpiryDate);
+
+  const flagged = [
+    cprStatus && cprStatus.tier !== "in-date"
+      ? { label: "CPR/Passport", status: cprStatus }
+      : null,
+    equipmentCprStatus && equipmentCprStatus.tier !== "in-date"
+      ? { label: "Equipment CPR", status: equipmentCprStatus }
+      : null,
+  ].filter((f): f is { label: string; status: NonNullable<typeof cprStatus> } => f !== null);
+
+  if (flagged.length === 0) return null;
+
+  const worst = flagged.some((f) => f.status.tier === "expired") ? "expired" : "expiring";
+  const names = flagged.map((f) => `${f.label} (${f.status.label})`).join(", ");
+
+  return (
+    <div
+      className={`mb-4 flex items-start gap-2.5 rounded-2xl border-2 px-4 py-3.5 text-sm ${
+        worst === "expired"
+          ? "border-red-300 bg-red-50 text-red-800"
+          : "border-amber-300 bg-amber-50 text-amber-800"
+      }`}
+    >
+      <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+      <span>
+        Your saved <strong>{names}</strong> — please update it on your next
+        request.
+      </span>
+    </div>
+  );
+}
+
 function WizardSteps() {
   const {
     step,
@@ -121,6 +165,7 @@ function WizardSteps() {
   return (
     <>
       <ProfilePrefill />
+      <ProfileExpiryBanner />
       {isVerified && (
         <button
           type="button"

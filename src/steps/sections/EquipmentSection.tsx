@@ -1,11 +1,12 @@
 import { nanoid } from "nanoid";
-import { useFieldArray, useFormContext } from "react-hook-form";
+import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { TextField } from "../../components/fields/TextField";
 import { TextAreaField } from "../../components/fields/TextAreaField";
 import { DateTimeField } from "../../components/fields/DateTimeField";
 import { RepeatableSection } from "../../components/repeatable/RepeatableSection";
 import { RepeatableCard } from "../../components/repeatable/RepeatableCard";
 import { AttachmentList } from "../../components/repeatable/AttachmentList";
+import { ExpiryBadge } from "../../components/feedback/ExpiryBadge";
 import { getFieldError } from "../../utils/getFieldError";
 import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
 
@@ -32,6 +33,7 @@ export function EquipmentSection() {
     name: "equipment",
   });
   const arrayError = getFieldError(errors, "equipment");
+  const cprExpiryDate = useWatch({ control, name: "equipmentDetails.cprExpiryDate" });
 
   useEnsureOneEntry(fields, append, blankEquipment);
 
@@ -53,6 +55,9 @@ export function EquipmentSection() {
             required
             showTime={false}
           />
+          <div className="-mt-2 flex justify-end">
+            <ExpiryBadge date={cprExpiryDate} />
+          </div>
         </div>
       </div>
 

@@ -1,3 +1,5 @@
+import { fetchJsonWithRetry } from "./fetchJsonWithRetry";
+
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
 
 export interface RequesterProfileData {
@@ -81,6 +83,13 @@ export interface RequestDetail {
 const GENERIC_ERROR =
   "Something went wrong. Please check your connection and try again.";
 
+// Shown after retries are exhausted for the delivery-layer failure modes
+// (as opposed to a real network error) — we now know these usually mean
+// the action already went through and the response just didn't make it
+// back, so the copy reflects that instead of blaming the connection.
+const DELIVERY_ERROR =
+  "We didn't get a clear response back after a few tries. If this was meant to send a code or load something, it may have already gone through — please check before trying again.";
+
 async function postAction(body: Record<string, unknown>): Promise<
   { ok: true; data: Record<string, unknown> } | { ok: false; error: string }
 > {
@@ -91,33 +100,21 @@ async function postAction(body: Record<string, unknown>): Promise<
     };
   }
 
-  let response: Response;
-  try {
-    response = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(body),
-    });
-  } catch {
-    return { ok: false, error: "Couldn't reach the server. Check your internet connection and try again." };
+  const result = await fetchJsonWithRetry(APPS_SCRIPT_URL, body);
+  if (!result.ok) {
+    return {
+      ok: false,
+      error: result.reason === "network"
+        ? "Couldn't reach the server. Check your internet connection and try again."
+        : DELIVERY_ERROR,
+    };
   }
 
-  if (!response.ok) {
+  if (typeof result.data !== "object" || result.data === null) {
     return { ok: false, error: GENERIC_ERROR };
   }
 
-  let result: unknown;
-  try {
-    result = await response.json();
-  } catch {
-    return { ok: false, error: GENERIC_ERROR };
-  }
-
-  if (typeof result !== "object" || result === null) {
-    return { ok: false, error: GENERIC_ERROR };
-  }
-
-  const data = result as Record<string, unknown>;
+  const data = result.data as Record<string, unknown>;
   if (data.ok === true) {
     return { ok: true, data };
   }

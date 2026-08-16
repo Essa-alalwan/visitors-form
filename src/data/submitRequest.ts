@@ -1,5 +1,7 @@
+import { nanoid } from "nanoid";
 import type { SubmissionPayload, SubmitResult } from "./payloadTypes";
 import { toWirePayload } from "./wirePayload";
+import { fetchJsonWithRetry } from "./fetchJsonWithRetry";
 
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL;
 
@@ -85,44 +87,24 @@ export async function submitRequest(
     saveProfile: options?.saveProfile || undefined,
     accountEmail: options?.accountEmail || undefined,
     sessionToken: options?.sessionToken || undefined,
+    // Stays identical across every retry attempt of this one call (the
+    // same `body` object is re-sent each time), letting the backend
+    // recognize a retried submission and return the original result
+    // instead of writing a duplicate request row.
+    idempotencyKey: nanoid(),
   };
 
-  let response: Response;
-  try {
-    response = await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      headers: {
-        // Intentionally text/plain, NOT application/json — this avoids a
-        // CORS preflight request that Apps Script Web Apps handle poorly.
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-      body: JSON.stringify(body),
-    });
-  } catch {
+  const result = await fetchJsonWithRetry(APPS_SCRIPT_URL, body);
+  if (!result.ok) {
     return {
       success: false,
-      error: "Couldn't reach the server. Check your internet connection and try again.",
+      error: result.reason === "network"
+        ? "Couldn't reach the server. Check your internet connection and try again."
+        : "We didn't get a clear response back after a few tries. Your request may have already been submitted — check \"My Requests\" before submitting again.",
     };
   }
 
-  if (!response.ok) {
-    return {
-      success: false,
-      error: `The server returned an unexpected error (HTTP ${response.status}). Please try again later.`,
-    };
-  }
-
-  let result: unknown;
-  try {
-    result = await response.json();
-  } catch {
-    return {
-      success: false,
-      error: "The server sent back an unreadable response. Please try again later.",
-    };
-  }
-
-  const parsed = parseSubmitResult(result);
+  const parsed = parseSubmitResult(result.data);
   if (!parsed) {
     return {
       success: false,
