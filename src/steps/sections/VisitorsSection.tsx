@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { SelectField } from "../../components/fields/SelectField";
 import { TextField } from "../../components/fields/TextField";
@@ -8,10 +8,14 @@ import { CheckboxField } from "../../components/fields/CheckboxField";
 import { RepeatableSection } from "../../components/repeatable/RepeatableSection";
 import { RepeatableCard } from "../../components/repeatable/RepeatableCard";
 import { AttachmentList } from "../../components/repeatable/AttachmentList";
+import { Trash2 } from "lucide-react";
 import { ExpiryBadge } from "../../components/feedback/ExpiryBadge";
+import { SearchInput } from "../../components/fields/SearchInput";
+import { ConfirmModal } from "../../components/ConfirmModal";
 import { VISIT_KINDS } from "../../utils/constants";
 import { getFieldError } from "../../utils/getFieldError";
 import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
+import { useListSearch } from "../../hooks/useListSearch";
 import { useProfile } from "../../context/ProfileContext";
 
 function VisitorCprExpiryBadge({ index }: { index: number }) {
@@ -72,6 +76,21 @@ export function VisitorsSection() {
   const { profile, isVerified } = useProfile();
   const prefillApplied = useRef(false);
 
+  const { query, setQuery, matches, hasQuery } = useListSearch<{
+    name?: string;
+    cprOrPassport?: string;
+  }>(control, "visitors", ["name", "cprOrPassport"]);
+  const noResults =
+    hasQuery && fields.length > 0 && fields.every((_field, index) => !matches(index));
+  const [confirmClear, setConfirmClear] = useState(false);
+
+  function handleClearAll() {
+    remove();
+    append(blankVisitor());
+    setQuery("");
+    setConfirmClear(false);
+  }
+
   useEnsureOneEntry(fields, append, blankVisitor);
 
   useEffect(() => {
@@ -111,50 +130,85 @@ export function VisitorsSection() {
         />
       )}
 
-      <RepeatableSection
-        title="Visitors"
-        items={fields}
-        addLabel="+ Add Another Visitor"
-        emptyMessage="No visitors added yet. Add at least one visitor to continue."
-        error={arrayError}
-        onAdd={() => {
-          append(blankVisitor());
-          clearErrors("visitors");
-        }}
-        renderItem={(_field, index) => (
-          <RepeatableCard
-            title={`Visitor ${index + 1}`}
-            removeLabel="Remove Visitor"
-            onRemove={index === 0 ? undefined : () => remove(index)}
-          >
-            <TextField
-              name={`visitors.${index}.name`}
-              label="Visitor Name"
-              required
-            />
-            <TextField
-              name={`visitors.${index}.cprOrPassport`}
-              label="CPR Card or Passport No"
-              required
-            />
-            <DateTimeField
-              name={`visitors.${index}.cprExpiryDate`}
-              label="CPR/Passport Expiry Date"
-              required
-              showTime={false}
-            />
-            <div className="-mt-3 flex justify-end">
-              <VisitorCprExpiryBadge index={index} />
-            </div>
-            <VisitorAttachmentExpiryAutofill index={index} />
-            <TextField
-              name={`visitors.${index}.jobTitle`}
-              label="Job Title"
-              required
-            />
-            <AttachmentList parentName={`visitors.${index}`} showExpiryDate />
-          </RepeatableCard>
-        )}
+      <SearchInput
+        value={query}
+        onChange={setQuery}
+        placeholder="Search visitors by name or CPR/passport..."
+      />
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setConfirmClear(true)}
+          className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 shadow-sm transition-colors hover:border-red-300 hover:bg-red-100"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Clear All Visitors
+        </button>
+      </div>
+
+      {noResults ? (
+        <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+          No visitors match &ldquo;{query}&rdquo;.
+        </p>
+      ) : (
+        <RepeatableSection
+          title="Visitors"
+          items={fields}
+          addLabel="+ Add Another Visitor"
+          emptyMessage="No visitors added yet. Add at least one visitor to continue."
+          error={arrayError}
+          onAdd={() => {
+            append(blankVisitor());
+            clearErrors("visitors");
+          }}
+          renderItem={(_field, index) => {
+            if (!matches(index)) return null;
+            return (
+              <RepeatableCard
+                title={`Visitor ${index + 1}`}
+                removeLabel="Remove Visitor"
+                onRemove={index === 0 ? undefined : () => remove(index)}
+              >
+                <TextField
+                  name={`visitors.${index}.name`}
+                  label="Visitor Name"
+                  required
+                />
+                <TextField
+                  name={`visitors.${index}.cprOrPassport`}
+                  label="CPR Card or Passport No"
+                  required
+                />
+                <DateTimeField
+                  name={`visitors.${index}.cprExpiryDate`}
+                  label="CPR/Passport Expiry Date"
+                  required
+                  showTime={false}
+                />
+                <div className="-mt-3 flex justify-end">
+                  <VisitorCprExpiryBadge index={index} />
+                </div>
+                <VisitorAttachmentExpiryAutofill index={index} />
+                <TextField
+                  name={`visitors.${index}.jobTitle`}
+                  label="Job Title"
+                  required
+                />
+                <AttachmentList parentName={`visitors.${index}`} showExpiryDate />
+              </RepeatableCard>
+            );
+          }}
+        />
+      )}
+
+      <ConfirmModal
+        open={confirmClear}
+        title="Clear all visitors?"
+        message="This will remove every visitor you've added and start the list over with one blank entry."
+        confirmLabel="Clear All"
+        onConfirm={handleClearAll}
+        onCancel={() => setConfirmClear(false)}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FormProvider, useForm, useFormContext, useWatch } from "react-hook-form";
-import { History, AlertTriangle } from "lucide-react";
+import { History, AlertTriangle, RotateCcw, LogOut } from "lucide-react";
 import { AppShell } from "./components/layout/AppShell";
 import { ProgressIndicator } from "./components/layout/ProgressIndicator";
 import { StepTransition } from "./components/layout/StepTransition";
@@ -214,19 +214,21 @@ function WizardSteps() {
           </span>
         </button>
       )}
-      <div className="mb-4 flex items-center justify-end gap-4">
+      <div className="mb-4 flex items-center justify-end gap-2.5">
         <button
           type="button"
           onClick={() => setConfirmAction("new")}
-          className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+          className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:border-slate-400 hover:bg-slate-50"
         >
+          <RotateCcw className="h-3.5 w-3.5" />
           New Request
         </button>
         <button
           type="button"
           onClick={() => setConfirmAction("signOut")}
-          className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+          className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 shadow-sm transition-colors hover:border-red-300 hover:bg-red-100"
         >
+          <LogOut className="h-3.5 w-3.5" />
           Sign Out
         </button>
       </div>
