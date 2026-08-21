@@ -161,6 +161,19 @@ export async function verifyOtp(
   };
 }
 
+// Lightweight guest-side email ownership check used at Step 2 — proves
+// the typed Contact Email is real and belongs to whoever's submitting,
+// without creating a session or unlocking history/profile the way the
+// full "I've submitted before" verifyOtp flow does.
+export async function verifyEmailOwnership(
+  email: string,
+  code: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const result = await postAction({ action: "verifyEmailOnly", email, code });
+  if (!result.ok) return result;
+  return { ok: true };
+}
+
 export async function getHistory(
   email: string,
   sessionToken: string,

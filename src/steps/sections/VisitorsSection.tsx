@@ -20,6 +20,30 @@ function VisitorCprExpiryBadge({ index }: { index: number }) {
   return <ExpiryBadge date={value} />;
 }
 
+// Defaults the visitor's first attachment's Document Expiry Date to match
+// their CPR/Passport Expiry Date, since that attachment is very often a
+// scan of the same document — avoids retyping the same date twice. Only
+// fills it in while it's still blank; never overwrites a value the user
+// already set (e.g. because the attachment turned out to be something
+// else with its own expiry).
+function VisitorAttachmentExpiryAutofill({ index }: { index: number }) {
+  const { control, setValue, getValues } = useFormContext();
+  const cprExpiryDate = useWatch({
+    control,
+    name: `visitors.${index}.cprExpiryDate`,
+  });
+
+  useEffect(() => {
+    if (!cprExpiryDate) return;
+    const current = getValues(`visitors.${index}.attachments.0.expiryDate`);
+    if (!current) {
+      setValue(`visitors.${index}.attachments.0.expiryDate`, cprExpiryDate);
+    }
+  }, [cprExpiryDate, index, setValue, getValues]);
+
+  return null;
+}
+
 function blankVisitor() {
   return {
     id: nanoid(),
@@ -122,6 +146,7 @@ export function VisitorsSection() {
             <div className="-mt-3 flex justify-end">
               <VisitorCprExpiryBadge index={index} />
             </div>
+            <VisitorAttachmentExpiryAutofill index={index} />
             <TextField
               name={`visitors.${index}.jobTitle`}
               label="Job Title"

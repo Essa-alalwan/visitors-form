@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid";
+import { useEffect } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { TextField } from "../../components/fields/TextField";
 import { TextAreaField } from "../../components/fields/TextAreaField";
@@ -25,6 +26,8 @@ function blankEquipment() {
 export function EquipmentSection() {
   const {
     control,
+    setValue,
+    getValues,
     formState: { errors },
     clearErrors,
   } = useFormContext();
@@ -36,6 +39,19 @@ export function EquipmentSection() {
   const cprExpiryDate = useWatch({ control, name: "equipmentDetails.cprExpiryDate" });
 
   useEnsureOneEntry(fields, append, blankEquipment);
+
+  // Defaults each equipment item's first attachment's Document Expiry Date
+  // to match the CPR Expiry Date above, same rationale as the visitor
+  // version — avoids retyping the same date, only fills in while blank.
+  useEffect(() => {
+    if (!cprExpiryDate) return;
+    fields.forEach((_field, index) => {
+      const current = getValues(`equipment.${index}.attachments.0.expiryDate`);
+      if (!current) {
+        setValue(`equipment.${index}.attachments.0.expiryDate`, cprExpiryDate);
+      }
+    });
+  }, [cprExpiryDate, fields, setValue, getValues]);
 
   return (
     <div className="space-y-6">

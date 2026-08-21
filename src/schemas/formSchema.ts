@@ -4,6 +4,7 @@ import {
   MAX_FILE_SIZE_BYTES,
   MAX_FILE_SIZE_MB,
 } from "../utils/constants";
+import { getExpiryStatus } from "../utils/expiryStatus";
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -104,7 +105,12 @@ const baseFormSchema = z.object({
   visitDurationHours: z.coerce.number().min(0).max(999).optional(),
   visitDurationMinutes: z.coerce.number().min(0).max(59).optional(),
   companyName: z.string().min(1, "Please enter the company name"),
-  contactEmail: z.string().optional(),
+  // Required — guests now have to OTP-verify this email before continuing
+  // past Step 2, so it can never legitimately be left blank.
+  contactEmail: z
+    .string()
+    .min(1, "Please enter a contact email")
+    .regex(EMAIL_REGEX, "Please enter a valid email address"),
   aldurContactPerson: z
     .string()
     .min(1, "Please enter the Aldur II contact person"),
@@ -150,6 +156,39 @@ function checkAttachmentFiles(
   });
 }
 
+// A request can't go through the approval chain for an ID or document
+// that's already expired — no point having Department/HSSE/Security
+// review someone who'd be turned away at the gate anyway.
+function checkNotExpired(
+  date: Date | undefined,
+  path: (string | number)[],
+  label: string,
+  issues: { path: string[]; message: string }[],
+) {
+  if (!date) return;
+  if (getExpiryStatus(date)?.tier === "expired") {
+    issues.push({
+      path: path.map(String),
+      message: `${label} has expired — please update it before submitting`,
+    });
+  }
+}
+
+function checkAttachmentExpiry(
+  attachments: { expiryDate?: Date }[] | undefined,
+  basePath: (string | number)[],
+  issues: { path: string[]; message: string }[],
+) {
+  attachments?.forEach((att, index) => {
+    checkNotExpired(
+      att.expiryDate,
+      [...basePath, "attachments", index, "expiryDate"],
+      "This document's expiry date",
+      issues,
+    );
+  });
+}
+
 export function getCrossFieldIssues(
   data: Partial<FormValues>,
 ): { path: string[]; message: string }[] {
@@ -160,9 +199,6 @@ export function getCrossFieldIssues(
   }
   if (!data.visitDateTime) {
     issues.push({ path: ["visitDateTime"], message: "Please choose a visit date and time" });
-  }
-  if (data.contactEmail && !EMAIL_REGEX.test(data.contactEmail)) {
-    issues.push({ path: ["contactEmail"], message: "Please enter a valid email address" });
   }
 
   if (data.requestType === "visitors") {
@@ -179,7 +215,14 @@ export function getCrossFieldIssues(
           message: "Please choose a CPR/Passport expiry date",
         });
       }
+      checkNotExpired(
+        visitor.cprExpiryDate,
+        ["visitors", index, "cprExpiryDate"],
+        "This visitor's CPR/Passport",
+        issues,
+      );
       checkAttachmentFiles(visitor.attachments, ["visitors", index], issues);
+      checkAttachmentExpiry(visitor.attachments, ["visitors", index], issues);
     });
     if (
       (data.visitKind === "Field Work" || data.visitKind === "Both") &&
@@ -208,11 +251,18 @@ export function getCrossFieldIssues(
         message: "Please choose a CPR expiry date",
       });
     }
+    checkNotExpired(
+      data.equipmentDetails?.cprExpiryDate,
+      ["equipmentDetails", "cprExpiryDate"],
+      "The CPR expiry date",
+      issues,
+    );
     if (!data.equipment || data.equipment.length === 0) {
       issues.push({ path: ["equipment"], message: "Please add at least one equipment item" });
     }
     data.equipment?.forEach((item, index) => {
       checkAttachmentFiles(item.attachments, ["equipment", index], issues);
+      checkAttachmentExpiry(item.attachments, ["equipment", index], issues);
     });
   }
 

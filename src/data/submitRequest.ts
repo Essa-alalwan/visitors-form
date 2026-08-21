@@ -53,15 +53,8 @@ function parseSubmitResult(value: unknown): SubmitResult | null {
   return null;
 }
 
-export interface SubmitRequestOptions {
-  saveProfile?: boolean;
-  accountEmail?: string;
-  sessionToken?: string;
-}
-
 export async function submitRequest(
   payload: SubmissionPayload,
-  options?: SubmitRequestOptions,
 ): Promise<SubmitResult> {
   if (!APPS_SCRIPT_URL) {
     return {
@@ -84,9 +77,6 @@ export async function submitRequest(
   const body = {
     action: "submitRequest",
     ...wirePayload,
-    saveProfile: options?.saveProfile || undefined,
-    accountEmail: options?.accountEmail || undefined,
-    sessionToken: options?.sessionToken || undefined,
     // Stays identical across every retry attempt of this one call (the
     // same `body` object is re-sent each time), letting the backend
     // recognize a retried submission and return the original result

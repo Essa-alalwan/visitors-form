@@ -1,19 +1,51 @@
+import { useRef, useState } from "react";
+import { useFormContext } from "react-hook-form";
 import { StepCard } from "../components/layout/StepCard";
 import { WizardNav } from "../components/layout/WizardNav";
 import { TextField } from "../components/fields/TextField";
 import { SelectField } from "../components/fields/SelectField";
 import { DateTimeField } from "../components/fields/DateTimeField";
 import { DurationStepper } from "../components/fields/DurationStepper";
+import { VerifyEmailModal } from "../components/profile/VerifyEmailModal";
 import { DEPARTMENTS } from "../utils/constants";
 import { useStepValidation } from "../hooks/useStepValidation";
 import { useFormWizard } from "../context/FormWizardContext";
+import { useProfile } from "../context/ProfileContext";
+import type { FormValues } from "../schemas/formSchema";
 
 export function Step2VisitDetails() {
   const { goNext, goBack } = useFormWizard();
   const { validateStep } = useStepValidation();
+  const { isVerified } = useProfile();
+  const { getValues } = useFormContext<FormValues>();
+
+  // Returning/verified users already proved their email before entering
+  // the wizard — this gate only applies to guests. Tracks which exact
+  // email was last verified so changing it forces a re-check.
+  const [showVerify, setShowVerify] = useState(false);
+  const verifiedEmailRef = useRef<string | null>(null);
 
   async function handleNext() {
-    if (await validateStep(2)) goNext();
+    if (!(await validateStep(2))) return;
+
+    if (isVerified) {
+      goNext();
+      return;
+    }
+
+    const contactEmail = getValues("contactEmail");
+    if (verifiedEmailRef.current === contactEmail) {
+      goNext();
+      return;
+    }
+
+    setShowVerify(true);
+  }
+
+  function handleVerified() {
+    verifiedEmailRef.current = getValues("contactEmail");
+    setShowVerify(false);
+    goNext();
   }
 
   return (
@@ -33,7 +65,8 @@ export function Step2VisitDetails() {
         name="contactEmail"
         label="Contact Email"
         type="email"
-        helperText="Email of requester (status notifications will be sent here)"
+        required
+        helperText="Email of requester — status notifications will be sent here. You'll need to verify you own it before continuing."
       />
       <TextField
         name="aldurContactPerson"
@@ -49,6 +82,13 @@ export function Step2VisitDetails() {
       />
 
       <WizardNav onNext={handleNext} onBack={goBack} />
+
+      <VerifyEmailModal
+        email={getValues("contactEmail") || ""}
+        open={showVerify}
+        onVerified={handleVerified}
+        onCancel={() => setShowVerify(false)}
+      />
     </StepCard>
   );
 }
