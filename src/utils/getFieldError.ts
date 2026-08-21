@@ -20,3 +20,19 @@ export function getFieldError(
   }
   return undefined;
 }
+
+/** True if anything is invalid anywhere inside one item of a field array
+ * (nested attachment fields included) — regardless of which exact field.
+ * Used to flag a collapsed repeatable card that has an unfixed error
+ * hiding underneath its summary. */
+export function hasItemErrors(
+  errors: FieldErrors,
+  arrayName: string,
+  index: number,
+): boolean {
+  const itemErrors = (errors as Record<string, unknown>)?.[arrayName] as
+    | Record<number, unknown>
+    | undefined;
+  const entry = itemErrors?.[index];
+  return entry != null && typeof entry === "object" && Object.keys(entry).length > 0;
+}

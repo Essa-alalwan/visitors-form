@@ -6,6 +6,7 @@ import {
   getCrossFieldIssues,
   type FormValues,
 } from "../schemas/formSchema";
+import { scrollToField } from "../utils/scrollToField";
 
 /**
  * react-hook-form's zodResolver-driven `trigger()` does not reliably clear a
@@ -56,15 +57,7 @@ export function useStepValidation() {
     }
 
     if (!isStepValid && firstErrorPath) {
-      // Errors render after this render cycle commits; wait a tick before
-      // scrolling so an off-screen error is never mistaken for "nothing happened".
-      requestAnimationFrame(() => {
-        const el =
-          document.getElementsByName(firstErrorPath!)[0] ??
-          document.getElementById(firstErrorPath!);
-        el?.scrollIntoView({ behavior: "smooth", block: "center" });
-        if (el instanceof HTMLElement) el.focus({ preventScroll: true });
-      });
+      scrollToField(firstErrorPath);
     }
 
     return isStepValid;

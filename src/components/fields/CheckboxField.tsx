@@ -24,6 +24,8 @@ export function CheckboxField({ name, label, required }: CheckboxFieldProps) {
           control={control}
           render={({ field }) => (
             <input
+              id={name}
+              name={name}
               type="checkbox"
               checked={field.value ?? false}
               onChange={(e) => field.onChange(e.target.checked)}

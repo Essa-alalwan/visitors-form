@@ -18,7 +18,7 @@ function formatDateOnly(date?: Date): string {
 
 function formatAttachments(
   attachments: {
-    id: string;
+    id?: string;
     file?: File;
     existingPath?: string;
     description: string;

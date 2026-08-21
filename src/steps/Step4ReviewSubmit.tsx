@@ -14,6 +14,7 @@ import { useProfile } from "../context/ProfileContext";
 import { submitRequest } from "../data/submitRequest";
 import { buildSubmissionPayload } from "../utils/buildSubmissionPayload";
 import { clearDraft } from "../utils/draftStorage";
+import { scrollToField } from "../utils/scrollToField";
 import {
   formSchema,
   getCrossFieldIssues,
@@ -103,9 +104,11 @@ export function Step4ReviewSubmit() {
 
     clearErrors();
     if (allIssues.length > 0) {
+      let firstErrorPath: string | null = null;
       for (const issue of allIssues) {
         const path = issue.path.join(".");
         if (path) {
+          if (!firstErrorPath) firstErrorPath = path;
           setError(path as FieldPath<FormValues>, {
             type: "custom",
             message: issue.message,
@@ -119,6 +122,7 @@ export function Step4ReviewSubmit() {
       if (earliestStep !== null && earliestStep < 4) {
         goToStep(earliestStep);
       }
+      if (firstErrorPath) scrollToField(firstErrorPath);
       return;
     }
     onSubmit(values);

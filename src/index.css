@@ -78,6 +78,33 @@
 .react-datepicker__triangle {
   display: none !important;
 }
+/* Brief highlight on whichever field scrollToField() lands on — scrolling
+   alone can be invisible if the target's already roughly in view, so this
+   gives a clear "this one" signal every time, not just when it moves. Pulses
+   twice and stays large/opaque enough to read clearly even on a small
+   control like a checkbox, not just on full-width text inputs. */
+@keyframes field-highlight-pulse {
+  0%, 40% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.55);
+    outline: 2px solid rgba(220, 38, 38, 0.8);
+  }
+  20% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.15);
+    outline: 2px solid rgba(220, 38, 38, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+    outline: 2px solid rgba(220, 38, 38, 0);
+  }
+}
+.field-highlight {
+  position: relative;
+  z-index: 1;
+  animation: field-highlight-pulse 1.8s ease-out;
+  border-radius: 0.75rem;
+  outline-offset: 3px;
+}
+
 /* Adjacent-month padding days read as confusing "duplicate" numbers and
    let a stray click silently jump the whole calendar to another month —
    keep them as blank, inert grid spacers instead. */

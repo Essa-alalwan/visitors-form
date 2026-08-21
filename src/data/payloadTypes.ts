@@ -1,5 +1,5 @@
 export interface AttachmentPayload {
-  id: string;
+  id?: string;
   file?: File;
   // Set when this attachment references a file already on the server from
   // a past submission (loaded via "My Requests" for editing) instead of a
@@ -12,7 +12,7 @@ export interface AttachmentPayload {
 }
 
 export interface VisitorPayload {
-  id: string;
+  id?: string;
   name: string;
   cprOrPassport: string;
   jobTitle: string;
@@ -29,7 +29,7 @@ export interface MaterialDetailsPayload {
 }
 
 export interface MaterialItemPayload {
-  id: string;
+  id?: string;
   inOut: string;
   returnable: string;
   description: string;
@@ -41,7 +41,7 @@ export interface MaterialItemPayload {
 }
 
 export interface EquipmentItemPayload {
-  id: string;
+  id?: string;
   typeModel: string;
   plateNo: string;
   name: string;

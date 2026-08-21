@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { TextField } from "../../components/fields/TextField";
 import { TextAreaField } from "../../components/fields/TextAreaField";
@@ -11,7 +11,7 @@ import { Trash2 } from "lucide-react";
 import { ExpiryBadge } from "../../components/feedback/ExpiryBadge";
 import { SearchInput } from "../../components/fields/SearchInput";
 import { ConfirmModal } from "../../components/ConfirmModal";
-import { getFieldError } from "../../utils/getFieldError";
+import { getFieldError, hasItemErrors } from "../../utils/getFieldError";
 import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
 import { useListSearch } from "../../hooks/useListSearch";
 
@@ -60,6 +60,45 @@ export function EquipmentSection() {
     setQuery("");
     setConfirmClear(false);
   }
+
+  // Only one equipment card is ever expanded (editable) at a time — see
+  // VisitorsSection.tsx for the full rationale of this pattern.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const prevLengthRef = useRef(0);
+  const watchedEquipment = useWatch({ control, name: "equipment" }) as
+    | { name?: string; typeModel?: string; plateNo?: string; operatorLicenseNo?: string }[]
+    | undefined;
+
+  function equipmentSummary(index: number): string {
+    const e = watchedEquipment?.[index];
+    if (!e) return "";
+    const details = [
+      e.typeModel,
+      e.plateNo ? `Plate ${e.plateNo}` : "",
+      e.operatorLicenseNo ? `License ${e.operatorLicenseNo}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const name = e.name || "(unnamed)";
+    return details ? `${name} — ${details}` : name;
+  }
+
+  // See VisitorsSection.tsx for why this reads ids only from `fields`
+  // (react-hook-form's own tracking ids), never from a locally-constructed
+  // blank item — useFieldArray overwrites `.id` on append.
+  useEffect(() => {
+    if (fields.length > prevLengthRef.current) {
+      setExpandedId(fields[fields.length - 1].id);
+    }
+    prevLengthRef.current = fields.length;
+  }, [fields]);
+
+  useEffect(() => {
+    if (!hasQuery) return;
+    const matching = fields.filter((_f, i) => matches(i));
+    if (matching.length === 1) setExpandedId(matching[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   // Defaults each equipment item's first attachment's Document Expiry Date
   // to match the CPR Expiry Date above, same rationale as the visitor
@@ -130,13 +169,29 @@ export function EquipmentSection() {
             append(blankEquipment());
             clearErrors("equipment");
           }}
-          renderItem={(_field, index) => {
+          renderItem={(field, index) => {
             if (!matches(index)) return null;
+            // An item with an unresolved error can't stay collapsed — it
+            // must be visible (and in the DOM) for the invalid field to be
+            // reachable and scrollable-to.
+            const expanded =
+              expandedId === field.id || hasItemErrors(errors, "equipment", index);
             return (
               <RepeatableCard
                 title={`Equipment ${index + 1}`}
                 removeLabel="Remove Equipment"
-                onRemove={index === 0 ? undefined : () => remove(index)}
+                onRemove={
+                  index === 0
+                    ? undefined
+                    : () => {
+                        if (expandedId === field.id) setExpandedId(null);
+                        remove(index);
+                      }
+                }
+                collapsed={!expanded}
+                onToggle={() => setExpandedId(expanded ? null : field.id)}
+                summary={equipmentSummary(index)}
+                hasError={hasItemErrors(errors, "equipment", index)}
               >
                 <TextField
                   name={`equipment.${index}.typeModel`}

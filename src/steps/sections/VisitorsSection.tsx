@@ -13,7 +13,7 @@ import { ExpiryBadge } from "../../components/feedback/ExpiryBadge";
 import { SearchInput } from "../../components/fields/SearchInput";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { VISIT_KINDS } from "../../utils/constants";
-import { getFieldError } from "../../utils/getFieldError";
+import { getFieldError, hasItemErrors } from "../../utils/getFieldError";
 import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
 import { useListSearch } from "../../hooks/useListSearch";
 import { useProfile } from "../../context/ProfileContext";
@@ -91,7 +91,47 @@ export function VisitorsSection() {
     setConfirmClear(false);
   }
 
+  // Only one visitor card is ever expanded (editable) at a time — everything
+  // else collapses into a one-line summary. `null` genuinely means "nothing
+  // expanded," not a fallback signal, so collapsing the last card actually
+  // stays collapsed instead of immediately re-expanding.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const prevLengthRef = useRef(0);
+  const watchedVisitors = useWatch({ control, name: "visitors" }) as
+    | { name?: string; jobTitle?: string; cprOrPassport?: string }[]
+    | undefined;
+
+  function visitorSummary(index: number): string {
+    const v = watchedVisitors?.[index];
+    if (!v) return "";
+    const details = [v.jobTitle, v.cprOrPassport].filter(Boolean).join(" · ");
+    return details ? `${v.name || "(unnamed)"} — ${details}` : v.name || "(unnamed)";
+  }
+
   useEnsureOneEntry(fields, append, blankVisitor);
+
+  // Whenever the list grows — first populated (fresh blank entry, a past
+  // request loaded via Edit, a restored draft) or a new item appended —
+  // expand the newest one and let everything else collapse. Sourced only
+  // from `fields` (react-hook-form's own tracking ids), never from a
+  // locally-constructed object: useFieldArray overwrites `.id` on append
+  // with its own generated id, so a freshly-built blank item's `id` would
+  // never match what actually ends up in `fields`.
+  useEffect(() => {
+    if (fields.length > prevLengthRef.current) {
+      setExpandedId(fields[fields.length - 1].id);
+    }
+    prevLengthRef.current = fields.length;
+  }, [fields]);
+
+  // If a search narrows the list to exactly one visitor, jump straight to
+  // editing it instead of leaving it collapsed and requiring an extra click.
+  useEffect(() => {
+    if (!hasQuery) return;
+    const matching = fields.filter((_f, i) => matches(i));
+    if (matching.length === 1) setExpandedId(matching[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   useEffect(() => {
     if (!isVerified || !profile || prefillApplied.current || fields.length === 0) {
@@ -162,13 +202,29 @@ export function VisitorsSection() {
             append(blankVisitor());
             clearErrors("visitors");
           }}
-          renderItem={(_field, index) => {
+          renderItem={(field, index) => {
             if (!matches(index)) return null;
+            // An item with an unresolved error can't stay collapsed — it
+            // must be visible (and in the DOM) for the invalid field to be
+            // reachable and scrollable-to.
+            const expanded =
+              expandedId === field.id || hasItemErrors(errors, "visitors", index);
             return (
               <RepeatableCard
                 title={`Visitor ${index + 1}`}
                 removeLabel="Remove Visitor"
-                onRemove={index === 0 ? undefined : () => remove(index)}
+                onRemove={
+                  index === 0
+                    ? undefined
+                    : () => {
+                        if (expandedId === field.id) setExpandedId(null);
+                        remove(index);
+                      }
+                }
+                collapsed={!expanded}
+                onToggle={() => setExpandedId(expanded ? null : field.id)}
+                summary={visitorSummary(index)}
+                hasError={hasItemErrors(errors, "visitors", index)}
               >
                 <TextField
                   name={`visitors.${index}.name`}

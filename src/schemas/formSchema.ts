@@ -9,7 +9,14 @@ import { getExpiryStatus } from "../utils/expiryStatus";
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const attachmentSchema = z.object({
-  id: z.string(),
+  // Purely an internal React-key field (see blankAttachment() /
+  // detailToFormValues.ts) — never read anywhere, never rendered as a
+  // visible input. Must stay optional: if this were ever required and
+  // somehow missing, there would be no field for a user to fix it in,
+  // making the error an unrecoverable dead end (confirmed happening in
+  // practice — a validation failure here was silently unfixable since
+  // scrollToField had nothing to scroll to).
+  id: z.string().optional(),
   // Set when this attachment references a file already uploaded on a past
   // submission (loaded via "My Requests" for editing) rather than a fresh
   // browser File — see getCrossFieldIssues for the "one of the two is
