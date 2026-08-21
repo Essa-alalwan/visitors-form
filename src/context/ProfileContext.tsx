@@ -36,6 +36,18 @@ interface ProfileContextValue {
 
   refreshHistory: () => Promise<void>;
   signOut: () => void;
+  // Reapplies already-verified state restored from a persisted draft
+  // (see DraftPersistence.tsx) after a page refresh — deliberately does
+  // NOT go through requestOtp/verifyOtp, since this isn't a new login,
+  // just reinstating a session that was already proven valid earlier in
+  // the same tab.
+  restoreSession: (data: {
+    entryChoice: EntryChoice;
+    email: string | null;
+    sessionToken: string | null;
+    profile: RequesterProfileData | null;
+    history: RequestHistoryEntry[];
+  }) => void;
 }
 
 const ProfileContext = createContext<ProfileContextValue | null>(null);
@@ -115,6 +127,20 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setEntryChoice(null);
   }
 
+  function restoreSession(data: {
+    entryChoice: EntryChoice;
+    email: string | null;
+    sessionToken: string | null;
+    profile: RequesterProfileData | null;
+    history: RequestHistoryEntry[];
+  }) {
+    setEntryChoice(data.entryChoice);
+    setEmail(data.email);
+    setSessionToken(data.sessionToken);
+    setProfile(data.profile);
+    setHistory(data.history);
+  }
+
   const value = useMemo<ProfileContextValue>(
     () => ({
       entryChoice,
@@ -138,6 +164,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       resendCode,
       refreshHistory,
       signOut,
+      restoreSession,
     }),
     [entryChoice, email, sessionToken, profile, history, otpStage, otpSending, otpError],
   );

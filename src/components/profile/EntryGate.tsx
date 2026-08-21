@@ -180,7 +180,7 @@ function ChoiceStep() {
         <History className="h-5 w-5 flex-shrink-0 text-slate-500" />
         <span>
           <span className="block text-sm font-semibold text-slate-800">
-            I've submitted before
+            Sign In
           </span>
           <span className="block text-xs text-slate-500">
             Verify your email to prefill your info and see your past requests.

@@ -13,6 +13,7 @@ import { useFormWizard } from "../context/FormWizardContext";
 import { useProfile } from "../context/ProfileContext";
 import { submitRequest } from "../data/submitRequest";
 import { buildSubmissionPayload } from "../utils/buildSubmissionPayload";
+import { clearDraft } from "../utils/draftStorage";
 import {
   formSchema,
   getCrossFieldIssues,
@@ -69,6 +70,10 @@ export function Step4ReviewSubmit() {
         setReferenceNumber(result.requestId);
         setSubmissionStatus("success");
         refreshHistory();
+        // A successful submission's draft would otherwise still be sitting
+        // in IndexedDB and get restored into what looks like a new request
+        // the next time this tab refreshes.
+        clearDraft();
       } else {
         setSubmissionError(result.error);
         setSubmissionStatus("error");

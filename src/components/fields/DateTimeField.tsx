@@ -45,6 +45,9 @@ export function DateTimeField({
               onBlur={field.onBlur}
               showTimeSelect={showTime}
               timeIntervals={15}
+              showYearDropdown
+              showMonthDropdown
+              dropdownMode="select"
               dateFormat={showTime ? "d MMM yyyy, h:mm aa" : "d MMM yyyy"}
               placeholderText={
                 showTime ? "Choose a date and time" : "Choose a date"

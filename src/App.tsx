@@ -8,8 +8,11 @@ import { FormWizardProvider, useFormWizard } from "./context/FormWizardContext";
 import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import { EntryGate } from "./components/profile/EntryGate";
 import { HistoryModal } from "./components/profile/HistoryModal";
+import { DraftPersistence } from "./components/DraftPersistence";
+import { ConfirmModal } from "./components/ConfirmModal";
 import { getRequestDetail } from "./data/profileApi";
 import { detailToFormValues } from "./utils/detailToFormValues";
+import { clearDraft } from "./utils/draftStorage";
 import { getExpiryStatus } from "./utils/expiryStatus";
 import type { FormValues } from "./schemas/formSchema";
 import { Step1RequestType } from "./steps/Step1RequestType";
@@ -134,10 +137,12 @@ function WizardSteps() {
     goToStep,
     setReferenceNumber,
     setSubmissionStatus,
+    reset: resetWizard,
   } = useFormWizard();
-  const { isVerified, email, sessionToken, history } = useProfile();
+  const { isVerified, email, sessionToken, history, signOut } = useProfile();
   const { reset } = useFormContext<FormValues>();
   const [showHistory, setShowHistory] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"new" | "signOut" | null>(null);
 
   async function handleOpenRequest(
     requestId: string,
@@ -162,6 +167,32 @@ function WizardSteps() {
     return true;
   }
 
+  // Discards whatever's currently filled in (e.g. a past request loaded
+  // via Edit/Duplicate) and goes back to a blank Step 1 — but leaves
+  // login state untouched, so a signed-in returning user stays signed in.
+  function performStartNewRequest() {
+    reset(defaultValues);
+    resetWizard();
+    clearDraft();
+  }
+
+  // Same reset as above, plus signs out of whatever identity is
+  // currently active (guest or verified returning user) so the person
+  // lands back on the entry-choice screen — the only way out of "guest"
+  // and into "Sign In" once already past that gate.
+  function performSignOut() {
+    reset(defaultValues);
+    resetWizard();
+    clearDraft();
+    signOut();
+  }
+
+  function handleConfirmAction() {
+    if (confirmAction === "new") performStartNewRequest();
+    if (confirmAction === "signOut") performSignOut();
+    setConfirmAction(null);
+  }
+
   return (
     <>
       <ProfilePrefill />
@@ -183,6 +214,34 @@ function WizardSteps() {
           </span>
         </button>
       )}
+      <div className="mb-4 flex items-center justify-end gap-4">
+        <button
+          type="button"
+          onClick={() => setConfirmAction("new")}
+          className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+        >
+          New Request
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirmAction("signOut")}
+          className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+        >
+          Sign Out
+        </button>
+      </div>
+      <ConfirmModal
+        open={confirmAction !== null}
+        title={confirmAction === "signOut" ? "Sign out?" : "Start a new request?"}
+        message={
+          confirmAction === "signOut"
+            ? "This will clear everything you've filled in and sign you out."
+            : "This will clear everything you've filled in so far."
+        }
+        confirmLabel={confirmAction === "signOut" ? "Sign Out" : "Start New Request"}
+        onConfirm={handleConfirmAction}
+        onCancel={() => setConfirmAction(null)}
+      />
       <ProgressIndicator
         step={step}
         totalSteps={totalSteps}
@@ -223,6 +282,7 @@ function App() {
       <FormProvider {...methods}>
         <FormWizardProvider>
           <ProfileProvider>
+            <DraftPersistence />
             <Gated />
           </ProfileProvider>
         </FormWizardProvider>
