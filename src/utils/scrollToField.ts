@@ -1,5 +1,6 @@
 const POLL_INTERVAL_MS = 50;
-const MAX_ATTEMPTS = 20; // ~1s total
+const MAX_ATTEMPTS = 40; // ~2s total — generous for a large accordion list that
+// needs to re-render (force-expanding the errored card) before the field exists
 const HIGHLIGHT_CLASS = "field-highlight";
 const HIGHLIGHT_DURATION_MS = 1800; // matches the CSS animation duration
 
@@ -12,10 +13,17 @@ const HIGHLIGHT_DURATION_MS = 1800; // matches the CSS animation duration
  * until the previous step's ~0.25s exit animation finishes), both mean the
  * target element may not exist in the DOM yet on the very next frame.
  *
- * Also applies a brief highlight pulse regardless of whether scrolling
- * actually moved anything — `scrollIntoView` is a no-op if the target's
- * already roughly in view (e.g. the same field is still invalid on a
- * second attempt), which otherwise looks like nothing happened at all.
+ * Deliberately an instant jump, not `behavior: "smooth"` — a smooth scroll
+ * is an async, interruptible animation, and calling `.focus()` on the
+ * target right after starting one (needed so keyboard/screen-reader users
+ * land on the actual field) can abort it mid-flight with no visible
+ * movement at all. An instant jump has nothing to interrupt: by the time
+ * `focus()` runs, the scroll has already fully happened, synchronously.
+ *
+ * Also applies a brief highlight pulse — `scrollIntoView` is a no-op if
+ * the target's already roughly in view (e.g. the same field is still
+ * invalid on a second attempt), which otherwise looks like nothing
+ * happened at all.
  */
 export function scrollToField(name: string, attempt = 0): void {
   const el =
@@ -28,7 +36,8 @@ export function scrollToField(name: string, attempt = 0): void {
     return;
   }
 
-  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.scrollIntoView({ block: "center" });
+
   if (el instanceof HTMLElement) {
     el.focus({ preventScroll: true });
 
