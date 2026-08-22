@@ -10,7 +10,7 @@ import { EntryGate } from "./components/profile/EntryGate";
 import { HistoryModal } from "./components/profile/HistoryModal";
 import { DraftPersistence } from "./components/DraftPersistence";
 import { ConfirmModal } from "./components/ConfirmModal";
-import { getRequestDetail } from "./data/profileApi";
+import { getRequestDetail, isSessionExpiredError } from "./data/profileApi";
 import { detailToFormValues } from "./utils/detailToFormValues";
 import { clearDraft } from "./utils/draftStorage";
 import { getExpiryStatus } from "./utils/expiryStatus";
@@ -147,11 +147,21 @@ function WizardSteps() {
   async function handleOpenRequest(
     requestId: string,
     mode: "edit" | "duplicate",
-  ): Promise<boolean> {
-    if (!email || !sessionToken) return false;
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    if (!email || !sessionToken) {
+      return { ok: false, error: "You're not signed in. Please verify your email again." };
+    }
 
     const result = await getRequestDetail(email, sessionToken, requestId);
-    if (!result.ok) return false;
+    if (!result.ok) {
+      if (isSessionExpiredError(result.error)) {
+        // Nothing to retry — the session cache entry is gone server-side.
+        // Drop back to the entry-choice screen instead of showing an error
+        // in a modal the user is about to lose access to anyway.
+        signOut();
+      }
+      return result;
+    }
 
     const values = detailToFormValues(result.detail);
     reset({ ...defaultValues, ...values } as FormValues);
@@ -164,7 +174,7 @@ function WizardSteps() {
     // double check/adjust before continuing through the wizard.
     goToStep(2);
     setShowHistory(false);
-    return true;
+    return { ok: true };
   }
 
   // Discards whatever's currently filled in (e.g. a past request loaded

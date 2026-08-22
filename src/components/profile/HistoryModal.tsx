@@ -57,6 +57,8 @@ function requiresHsseStage(item: RequestHistoryEntry): boolean {
   );
 }
 
+type OpenRequestResult = { ok: true } | { ok: false; error: string };
+
 export function HistoryModal({
   open,
   onClose,
@@ -65,8 +67,8 @@ export function HistoryModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onEditRequest: (requestId: string) => Promise<boolean>;
-  onDuplicateRequest: (requestId: string) => Promise<boolean>;
+  onEditRequest: (requestId: string) => Promise<OpenRequestResult>;
+  onDuplicateRequest: (requestId: string) => Promise<OpenRequestResult>;
 }) {
   const { history, refreshHistory } = useProfile();
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -77,13 +79,20 @@ export function HistoryModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  async function handleOpen(requestId: string, action: (id: string) => Promise<boolean>) {
+  async function handleOpen(
+    requestId: string,
+    action: (id: string) => Promise<OpenRequestResult>,
+  ) {
     setLoadingId(requestId);
     setLoadError(null);
-    const ok = await action(requestId);
+    const result = await action(requestId);
     setLoadingId(null);
-    if (!ok) {
-      setLoadError("Couldn't load that request. Please try again.");
+    if (!result.ok) {
+      // A session-expiry failure signs the user out (see App.tsx), which
+      // unmounts this modal along with everything else — nothing to show
+      // here in that case. Any other failure shows the real reason instead
+      // of a generic "try again" that wouldn't actually help.
+      setLoadError(result.error || "Couldn't load that request. Please try again.");
     }
   }
 

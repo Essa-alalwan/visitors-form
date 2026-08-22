@@ -174,6 +174,16 @@ export async function verifyEmailOwnership(
   return { ok: true };
 }
 
+// Exact text Code.gs's getHistoryAction_/getRequestDetailAction_ return
+// when the session cache entry (60 min TTL) is gone — a real, actionable
+// message the backend already provides, distinct from a generic failure.
+export const SESSION_EXPIRED_ERROR =
+  "Your session has expired. Please verify your email again.";
+
+export function isSessionExpiredError(error: string): boolean {
+  return error === SESSION_EXPIRED_ERROR;
+}
+
 export async function getHistory(
   email: string,
   sessionToken: string,

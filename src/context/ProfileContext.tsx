@@ -9,6 +9,7 @@ import {
   requestOtp,
   verifyOtp,
   getHistory,
+  isSessionExpiredError,
   type RequesterProfileData,
   type RequestHistoryEntry,
 } from "../data/profileApi";
@@ -113,7 +114,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   async function refreshHistory() {
     if (!email || !sessionToken) return;
     const result = await getHistory(email, sessionToken);
-    if (result.ok) setHistory(result.history);
+    if (result.ok) {
+      setHistory(result.history);
+    } else if (isSessionExpiredError(result.error)) {
+      // The 60-minute session cache entry is gone server-side — nothing to
+      // retry here, so drop back to the entry-choice screen instead of
+      // silently doing nothing (the previous behavior) or leaving stale
+      // history displayed.
+      signOut();
+    }
   }
 
   function signOut() {
