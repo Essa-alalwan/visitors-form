@@ -11,6 +11,7 @@ export function RepeatableCard({
   onToggle,
   summary,
   hasError = false,
+  statusBadge,
 }: {
   title: string;
   onRemove?: () => void;
@@ -26,6 +27,9 @@ export function RepeatableCard({
   /** Shows a warning icon on the collapsed row when something inside this
    * item is still invalid, so it can't silently hide behind the summary. */
   hasError?: boolean;
+  /** e.g. an expiry-status pill — rendered next to (not inside) the
+   * truncating summary text so it never gets clipped. */
+  statusBadge?: ReactNode;
 }) {
   return (
     <motion.div
@@ -52,8 +56,13 @@ export function RepeatableCard({
               />
             )}
           </div>
-          {collapsed && summary && (
-            <p className="mt-0.5 truncate text-xs text-slate-500">{summary}</p>
+          {collapsed && (summary || statusBadge) && (
+            <div className="mt-0.5 flex items-center gap-2">
+              {summary && (
+                <p className="truncate text-xs text-slate-500">{summary}</p>
+              )}
+              {statusBadge}
+            </div>
           )}
         </div>
 

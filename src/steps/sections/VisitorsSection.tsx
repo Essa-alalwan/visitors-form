@@ -10,6 +10,7 @@ import { RepeatableCard } from "../../components/repeatable/RepeatableCard";
 import { AttachmentList } from "../../components/repeatable/AttachmentList";
 import { Trash2 } from "lucide-react";
 import { ExpiryBadge } from "../../components/feedback/ExpiryBadge";
+import { worstExpiryStatus, expiryBadgeClasses } from "../../utils/expiryStatus";
 import { SearchInput } from "../../components/fields/SearchInput";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { VISIT_KINDS } from "../../utils/constants";
@@ -98,7 +99,13 @@ export function VisitorsSection() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const prevLengthRef = useRef(0);
   const watchedVisitors = useWatch({ control, name: "visitors" }) as
-    | { name?: string; jobTitle?: string; cprOrPassport?: string }[]
+    | {
+        name?: string;
+        jobTitle?: string;
+        cprOrPassport?: string;
+        cprExpiryDate?: Date;
+        attachments?: { expiryDate?: Date }[];
+      }[]
     | undefined;
 
   function visitorSummary(index: number): string {
@@ -106,6 +113,23 @@ export function VisitorsSection() {
     if (!v) return "";
     const details = [v.jobTitle, v.cprOrPassport].filter(Boolean).join(" · ");
     return details ? `${v.name || "(unnamed)"} — ${details}` : v.name || "(unnamed)";
+  }
+
+  function visitorStatusBadge(index: number) {
+    const v = watchedVisitors?.[index];
+    if (!v) return null;
+    const status = worstExpiryStatus([
+      v.cprExpiryDate,
+      ...(v.attachments ?? []).map((a) => a.expiryDate),
+    ]);
+    if (!status) return null;
+    return (
+      <span
+        className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${expiryBadgeClasses(status.tier)}`}
+      >
+        {status.label}
+      </span>
+    );
   }
 
   useEnsureOneEntry(fields, append, blankVisitor);
@@ -224,6 +248,7 @@ export function VisitorsSection() {
                 collapsed={!expanded}
                 onToggle={() => setExpandedId(expanded ? null : field.id)}
                 summary={visitorSummary(index)}
+                statusBadge={visitorStatusBadge(index)}
                 hasError={hasItemErrors(errors, "visitors", index)}
               >
                 <TextField

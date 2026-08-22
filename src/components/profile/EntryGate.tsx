@@ -103,6 +103,7 @@ function CodeStep() {
             id="otp-code"
             inputMode="numeric"
             autoComplete="one-time-code"
+            autoFocus
             required
             value={code}
             onChange={(e) => setCode(e.target.value)}

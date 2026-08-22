@@ -42,6 +42,34 @@ export function getExpiryStatus(
   return { tier: "in-date", label: "In Date" };
 }
 
+const TIER_PRIORITY: Record<ExpiryTier, number> = {
+  expired: 2,
+  expiring: 1,
+  "in-date": 0,
+};
+
+/**
+ * Combines several expiry-dated fields (e.g. a visitor's CPR/Passport plus
+ * every one of their attachments) into a single worst-case status, so a
+ * collapsed summary row can show one badge instead of none. Dates that are
+ * unset or unparsable are skipped rather than treated as "in date" — a
+ * visitor with nothing filled in yet shows no badge, not a false-positive
+ * green one.
+ */
+export function worstExpiryStatus(
+  values: (Date | string | undefined)[],
+): ExpiryStatus | null {
+  let worst: ExpiryStatus | null = null;
+  for (const value of values) {
+    const status = getExpiryStatus(value);
+    if (!status) continue;
+    if (!worst || TIER_PRIORITY[status.tier] > TIER_PRIORITY[worst.tier]) {
+      worst = status;
+    }
+  }
+  return worst;
+}
+
 export function expiryBadgeClasses(tier: ExpiryTier): string {
   if (tier === "expired") return "bg-red-50 text-red-700 ring-red-200";
   if (tier === "expiring") return "bg-amber-50 text-amber-700 ring-amber-200";

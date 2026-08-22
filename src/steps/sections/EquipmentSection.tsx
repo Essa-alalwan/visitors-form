@@ -9,6 +9,7 @@ import { RepeatableCard } from "../../components/repeatable/RepeatableCard";
 import { AttachmentList } from "../../components/repeatable/AttachmentList";
 import { Trash2 } from "lucide-react";
 import { ExpiryBadge } from "../../components/feedback/ExpiryBadge";
+import { worstExpiryStatus, expiryBadgeClasses } from "../../utils/expiryStatus";
 import { SearchInput } from "../../components/fields/SearchInput";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { getFieldError, hasItemErrors } from "../../utils/getFieldError";
@@ -66,7 +67,13 @@ export function EquipmentSection() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const prevLengthRef = useRef(0);
   const watchedEquipment = useWatch({ control, name: "equipment" }) as
-    | { name?: string; typeModel?: string; plateNo?: string; operatorLicenseNo?: string }[]
+    | {
+        name?: string;
+        typeModel?: string;
+        plateNo?: string;
+        operatorLicenseNo?: string;
+        attachments?: { expiryDate?: Date }[];
+      }[]
     | undefined;
 
   function equipmentSummary(index: number): string {
@@ -81,6 +88,26 @@ export function EquipmentSection() {
       .join(" · ");
     const name = e.name || "(unnamed)";
     return details ? `${name} — ${details}` : name;
+  }
+
+  // Combines the shared "CPR Expiry Date" (the person responsible, same
+  // field for every item in this request) with this item's own attachment
+  // expiry into one worst-case badge for the collapsed row.
+  function equipmentStatusBadge(index: number) {
+    const e = watchedEquipment?.[index];
+    if (!e) return null;
+    const status = worstExpiryStatus([
+      cprExpiryDate,
+      ...(e.attachments ?? []).map((a) => a.expiryDate),
+    ]);
+    if (!status) return null;
+    return (
+      <span
+        className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${expiryBadgeClasses(status.tier)}`}
+      >
+        {status.label}
+      </span>
+    );
   }
 
   // See VisitorsSection.tsx for why this reads ids only from `fields`
@@ -191,6 +218,7 @@ export function EquipmentSection() {
                 collapsed={!expanded}
                 onToggle={() => setExpandedId(expanded ? null : field.id)}
                 summary={equipmentSummary(index)}
+                statusBadge={equipmentStatusBadge(index)}
                 hasError={hasItemErrors(errors, "equipment", index)}
               >
                 <TextField

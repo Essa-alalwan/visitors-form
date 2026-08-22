@@ -135,6 +135,7 @@ export function VerifyEmailModal({
           <input
             inputMode="numeric"
             autoComplete="one-time-code"
+            autoFocus
             required
             value={code}
             onChange={(e) => setCode(e.target.value)}
