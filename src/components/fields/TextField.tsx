@@ -9,6 +9,7 @@ interface TextFieldProps {
   helperText?: string;
   placeholder?: string;
   type?: "text" | "email";
+  disabled?: boolean;
 }
 
 export function TextField({
@@ -18,6 +19,7 @@ export function TextField({
   helperText,
   placeholder,
   type = "text",
+  disabled,
 }: TextFieldProps) {
   const {
     register,
@@ -38,7 +40,8 @@ export function TextField({
         type={type}
         placeholder={placeholder}
         aria-invalid={!!error}
-        className={`${inputBaseClass} ${inputBorderClass(!!error)}`}
+        disabled={disabled}
+        className={`${inputBaseClass} ${inputBorderClass(!!error)} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500`}
         {...register(name)}
       />
     </FieldShell>
