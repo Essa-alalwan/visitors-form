@@ -7,6 +7,7 @@ import {
 import { getExpiryStatus } from "../utils/expiryStatus";
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const PHONE_REGEX = /^[+\d][\d\s-]{6,}$/;
 
 export const attachmentSchema = z.object({
   // Purely an internal React-key field (see blankAttachment() /
@@ -50,6 +51,10 @@ export const attachmentSchema = z.object({
 export const visitorSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Please enter the visitor's name"),
+  // Frontend-only choice driving the format check below — never sent to
+  // the backend, which always just receives cprOrPassport as one string
+  // ("saved in the same spot" regardless of which type was picked).
+  cprType: z.enum(["Bahraini CPR", "Other (CPR/Passport)"]),
   cprOrPassport: z
     .string()
     .min(1, "Please enter a CPR card or passport number"),
@@ -118,6 +123,10 @@ const baseFormSchema = z.object({
     .string()
     .min(1, "Please enter a contact email")
     .regex(EMAIL_REGEX, "Please enter a valid email address"),
+  contactPhone: z
+    .string()
+    .min(1, "Please enter a contact phone number")
+    .regex(PHONE_REGEX, "Please enter a valid phone number"),
   aldurContactPerson: z
     .string()
     .min(1, "Please enter the Aldur II contact person"),
@@ -216,6 +225,15 @@ export function getCrossFieldIssues(
       issues.push({ path: ["visitors"], message: "Please add at least one visitor" });
     }
     data.visitors?.forEach((visitor, index) => {
+      if (
+        visitor.cprType === "Bahraini CPR" &&
+        !/^\d{9}$/.test(visitor.cprOrPassport || "")
+      ) {
+        issues.push({
+          path: ["visitors", String(index), "cprOrPassport"],
+          message: "Bahraini CPR must be exactly 9 digits",
+        });
+      }
       if (!visitor.cprExpiryDate) {
         issues.push({
           path: ["visitors", String(index), "cprExpiryDate"],
@@ -299,6 +317,7 @@ export const STEP_FIELD_NAMES: Record<number, (keyof FormValues)[]> = {
     "visitDurationMinutes",
     "companyName",
     "contactEmail",
+    "contactPhone",
     "aldurContactPerson",
     "department",
   ],

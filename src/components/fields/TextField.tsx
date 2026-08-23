@@ -8,7 +8,7 @@ interface TextFieldProps {
   required?: boolean;
   helperText?: string;
   placeholder?: string;
-  type?: "text" | "email";
+  type?: "text" | "email" | "tel";
   disabled?: boolean;
 }
 

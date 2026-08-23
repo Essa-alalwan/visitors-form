@@ -15,6 +15,8 @@ export const DEPARTMENTS = [
 
 export const VISIT_KINDS = ["Field Work", "Office Work", "Both"] as const;
 
+export const CPR_TYPES = ["Bahraini CPR", "Other (CPR/Passport)"] as const;
+
 export const IN_OUT_OPTIONS = ["In", "Out"] as const;
 
 export const RETURNABLE_OPTIONS = ["Returnable", "Non-Returnable"] as const;

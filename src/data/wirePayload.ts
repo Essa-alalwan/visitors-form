@@ -56,6 +56,7 @@ interface WireBase {
   visitDuration?: string;
   companyName: string;
   contactEmail?: string;
+  contactPhone?: string;
   contactPerson: string;
   department: string;
   visitPurpose: string;
@@ -147,6 +148,7 @@ export async function toWirePayload(
     visitDuration: payload.visitDuration,
     companyName: payload.companyName,
     contactEmail: payload.contactEmail,
+    contactPhone: payload.contactPhone,
     contactPerson: payload.aldurContactPerson,
     department: payload.department,
     visitPurpose: payload.visitPurpose,

@@ -60,6 +60,7 @@ export interface BaseSubmissionPayload {
   visitDuration?: string;
   companyName: string;
   contactEmail?: string;
+  contactPhone?: string;
   aldurContactPerson: string;
   department: string;
   visitPurpose: string;

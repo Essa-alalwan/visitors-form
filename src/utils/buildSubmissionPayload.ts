@@ -48,6 +48,7 @@ export function buildSubmissionPayload(
     ),
     companyName: values.companyName,
     contactEmail: values.contactEmail || undefined,
+    contactPhone: values.contactPhone || undefined,
     aldurContactPerson: values.aldurContactPerson,
     department: values.department as string,
     visitPurpose: values.visitPurpose,

@@ -39,6 +39,7 @@ export function detailToFormValues(detail: RequestDetail): Partial<FormValues> {
     visitDateTime: toDate(detail.visitDateTime),
     companyName: str(detail.companyName),
     contactEmail: str(detail.contactEmail),
+    contactPhone: str(detail.contactPhone),
     aldurContactPerson: str(detail.contactPerson),
     department: str(detail.department),
     visitPurpose: str(detail.visitPurpose),
@@ -47,14 +48,22 @@ export function detailToFormValues(detail: RequestDetail): Partial<FormValues> {
 
   if (detail.requestType === "Visitors") {
     values.visitKind = str(detail.visitKind);
-    values.visitors = (detail.visitors ?? []).map((v) => ({
-      id: nanoid(),
-      name: str(v.visitorName),
-      cprOrPassport: str(v.cprPassport),
-      jobTitle: str(v.jobTitle),
-      cprExpiryDate: toDate(v.cprExpiryDate),
-      attachments: toAttachments(v.attachments),
-    }));
+    values.visitors = (detail.visitors ?? []).map((v) => {
+      const cprOrPassport = str(v.cprPassport);
+      return {
+        id: nanoid(),
+        name: str(v.visitorName),
+        // Past submissions predate this toggle — infer it from the
+        // existing value's shape rather than leaving it unset.
+        cprType: (/^\d{9}$/.test(cprOrPassport)
+          ? "Bahraini CPR"
+          : "Other (CPR/Passport)") as "Bahraini CPR" | "Other (CPR/Passport)",
+        cprOrPassport,
+        jobTitle: str(v.jobTitle),
+        cprExpiryDate: toDate(v.cprExpiryDate),
+        attachments: toAttachments(v.attachments),
+      };
+    });
   }
 
   if (detail.requestType === "Material Entry & Exit") {

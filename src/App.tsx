@@ -27,6 +27,7 @@ const defaultValues: FormValues = {
   visitDurationMinutes: 0,
   companyName: "",
   contactEmail: "",
+  contactPhone: "",
   aldurContactPerson: "",
   department: "",
   visitPurpose: "",

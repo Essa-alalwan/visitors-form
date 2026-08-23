@@ -56,6 +56,7 @@ export interface RequestDetail {
   requestRemarks?: string;
   companyName?: string;
   contactEmail?: string;
+  contactPhone?: string;
   visitDuration?: string;
   visitors?: {
     visitorName: string;

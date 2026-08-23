@@ -12,6 +12,19 @@ interface DateTimeFieldProps {
   showTime?: boolean;
 }
 
+// Bounds the year dropdown to a relevant range (today .. +20 years) instead
+// of react-datepicker's default, which centers on/behind the current year —
+// leaving the actually-useful near-future years buried below a scroll of
+// old, irrelevant ones. Doesn't hide an already-set value outside this
+// range (e.g. a past request's already-expired date still displays); it
+// only bounds what can be newly picked going forward.
+function yearBounds() {
+  const today = new Date();
+  const maxDate = new Date(today);
+  maxDate.setFullYear(maxDate.getFullYear() + 20);
+  return { minDate: today, maxDate };
+}
+
 export function DateTimeField({
   name,
   label,
@@ -24,6 +37,7 @@ export function DateTimeField({
     formState: { errors },
   } = useFormContext();
   const error = getFieldError(errors, name);
+  const { minDate, maxDate } = yearBounds();
 
   return (
     <FieldShell
@@ -48,6 +62,8 @@ export function DateTimeField({
               showYearDropdown
               showMonthDropdown
               dropdownMode="select"
+              minDate={minDate}
+              maxDate={maxDate}
               dateFormat={showTime ? "d MMM yyyy, h:mm aa" : "d MMM yyyy"}
               placeholderText={
                 showTime ? "Choose a date and time" : "Choose a date"

@@ -83,6 +83,13 @@ export function Step2VisitDetails() {
         }
       />
       <TextField
+        name="contactPhone"
+        label="Contact Phone Number"
+        type="tel"
+        required
+        helperText="Requester's phone number, in case notifications by email aren't enough."
+      />
+      <TextField
         name="aldurContactPerson"
         label="Aldur II Contact Person"
         required

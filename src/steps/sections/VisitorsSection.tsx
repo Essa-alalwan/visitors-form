@@ -1,10 +1,11 @@
 import { nanoid } from "nanoid";
 import { useEffect, useRef, useState } from "react";
-import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { SelectField } from "../../components/fields/SelectField";
 import { TextField } from "../../components/fields/TextField";
 import { DateTimeField } from "../../components/fields/DateTimeField";
 import { CheckboxField } from "../../components/fields/CheckboxField";
+import { FieldShell, inputBaseClass, inputBorderClass } from "../../components/fields/FieldShell";
 import { RepeatableSection } from "../../components/repeatable/RepeatableSection";
 import { RepeatableCard } from "../../components/repeatable/RepeatableCard";
 import { AttachmentList } from "../../components/repeatable/AttachmentList";
@@ -12,17 +13,75 @@ import { Trash2 } from "lucide-react";
 import { ExpiryBadge } from "../../components/feedback/ExpiryBadge";
 import { worstExpiryStatus, expiryBadgeClasses } from "../../utils/expiryStatus";
 import { SearchInput } from "../../components/fields/SearchInput";
+import { SortSelect } from "../../components/fields/SortSelect";
 import { ConfirmModal } from "../../components/ConfirmModal";
-import { VISIT_KINDS } from "../../utils/constants";
+import { VISIT_KINDS, CPR_TYPES } from "../../utils/constants";
 import { getFieldError, hasItemErrors } from "../../utils/getFieldError";
 import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
 import { useListSearch } from "../../hooks/useListSearch";
+import { useListSort } from "../../hooks/useListSort";
 import { useProfile } from "../../context/ProfileContext";
 
 function VisitorCprExpiryBadge({ index }: { index: number }) {
   const { control } = useFormContext();
   const value = useWatch({ control, name: `visitors.${index}.cprExpiryDate` });
   return <ExpiryBadge date={value} />;
+}
+
+// Bahraini CPR is always exactly 9 digits; anything else (a passport, or a
+// non-Bahraini CPR) can be any format. Both still write to the exact same
+// cprOrPassport field/database column — cprType is a frontend-only toggle
+// that only changes how this input is validated and typed into, never what
+// gets submitted.
+function VisitorCprField({ index }: { index: number }) {
+  const {
+    control,
+    formState: { errors },
+  } = useFormContext();
+  const cprType = useWatch({ control, name: `visitors.${index}.cprType` });
+  const isBahraini = cprType === "Bahraini CPR";
+  const name = `visitors.${index}.cprOrPassport`;
+  const error = getFieldError(errors, name);
+
+  return (
+    <>
+      <SelectField
+        name={`visitors.${index}.cprType`}
+        label="ID Type"
+        options={CPR_TYPES}
+        required
+      />
+      <FieldShell
+        label="CPR Card or Passport No"
+        htmlFor={name}
+        required
+        helperText={isBahraini ? "Exactly 9 digits" : "CPR or passport number, any format"}
+        error={error}
+      >
+        <Controller
+          name={name}
+          control={control}
+          render={({ field }) => (
+            <input
+              id={name}
+              name={name}
+              type="text"
+              inputMode={isBahraini ? "numeric" : "text"}
+              maxLength={isBahraini ? 9 : undefined}
+              value={field.value ?? ""}
+              onChange={(e) => {
+                const raw = e.target.value;
+                field.onChange(isBahraini ? raw.replace(/\D/g, "").slice(0, 9) : raw);
+              }}
+              onBlur={field.onBlur}
+              aria-invalid={!!error}
+              className={`${inputBaseClass} ${inputBorderClass(!!error)}`}
+            />
+          )}
+        />
+      </FieldShell>
+    </>
+  );
 }
 
 // Defaults the visitor's first attachment's Document Expiry Date to match
@@ -53,6 +112,7 @@ function blankVisitor() {
   return {
     id: nanoid(),
     name: "",
+    cprType: "Bahraini CPR" as const,
     cprOrPassport: "",
     jobTitle: "",
     cprExpiryDate: undefined,
@@ -84,6 +144,20 @@ export function VisitorsSection() {
   const noResults =
     hasQuery && fields.length > 0 && fields.every((_field, index) => !matches(index));
   const [confirmClear, setConfirmClear] = useState(false);
+
+  const { sortBy, setSortBy, sortedIndexes, availableOptions } = useListSort<{
+    name?: string;
+    cprExpiryDate?: Date;
+    attachments?: { expiryDate?: Date }[];
+  }>(control, "visitors", {
+    getName: (v) => v.name,
+    getExpiryDates: (v) => [v.cprExpiryDate, ...(v.attachments ?? []).map((a) => a.expiryDate)],
+  });
+  // `sortedIndexes` comes from a separate `useWatch` subscription that can
+  // briefly lag one render behind `useFieldArray`'s own `fields` state
+  // right after a remove() — filtering out undefined here avoids crashing
+  // on a stale, now-out-of-range index for that one frame.
+  const orderedFields = sortedIndexes.map((i) => fields[i]).filter(Boolean);
 
   function handleClearAll() {
     remove();
@@ -165,7 +239,14 @@ export function VisitorsSection() {
 
     if (profile.visitorName) setValue("visitors.0.name", String(profile.visitorName));
     if (profile.cprOrPassport) {
-      setValue("visitors.0.cprOrPassport", String(profile.cprOrPassport));
+      const cprValue = String(profile.cprOrPassport);
+      setValue("visitors.0.cprOrPassport", cprValue);
+      // Saved history predates this toggle, so infer it from the value's
+      // shape the same way detailToFormValues.ts does for a loaded request.
+      setValue(
+        "visitors.0.cprType",
+        /^\d{9}$/.test(cprValue) ? "Bahraini CPR" : "Other (CPR/Passport)",
+      );
     }
     if (profile.jobTitle) setValue("visitors.0.jobTitle", String(profile.jobTitle));
     if (profile.cprExpiryDate) {
@@ -200,6 +281,10 @@ export function VisitorsSection() {
         placeholder="Search visitors by name or CPR/passport..."
       />
 
+      <div className="max-w-xs">
+        <SortSelect value={sortBy} onChange={setSortBy} options={availableOptions} />
+      </div>
+
       <div className="flex justify-end">
         <button
           type="button"
@@ -218,7 +303,7 @@ export function VisitorsSection() {
       ) : (
         <RepeatableSection
           title="Visitors"
-          items={fields}
+          items={orderedFields}
           addLabel="+ Add Another Visitor"
           emptyMessage="No visitors added yet. Add at least one visitor to continue."
           error={arrayError}
@@ -226,7 +311,11 @@ export function VisitorsSection() {
             append(blankVisitor());
             clearErrors("visitors");
           }}
-          renderItem={(field, index) => {
+          renderItem={(field) => {
+            // Sorting only changes display order, never the real array —
+            // recover the true position for every field name, remove(),
+            // and lookup below (same reasoning as the search filter).
+            const index = fields.findIndex((f) => f.id === field.id);
             if (!matches(index)) return null;
             // An item with an unresolved error can't stay collapsed — it
             // must be visible (and in the DOM) for the invalid field to be
@@ -256,11 +345,7 @@ export function VisitorsSection() {
                   label="Visitor Name"
                   required
                 />
-                <TextField
-                  name={`visitors.${index}.cprOrPassport`}
-                  label="CPR Card or Passport No"
-                  required
-                />
+                <VisitorCprField index={index} />
                 <DateTimeField
                   name={`visitors.${index}.cprExpiryDate`}
                   label="CPR/Passport Expiry Date"

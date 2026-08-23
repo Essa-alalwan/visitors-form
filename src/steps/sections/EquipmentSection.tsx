@@ -11,10 +11,12 @@ import { Trash2 } from "lucide-react";
 import { ExpiryBadge } from "../../components/feedback/ExpiryBadge";
 import { worstExpiryStatus, expiryBadgeClasses } from "../../utils/expiryStatus";
 import { SearchInput } from "../../components/fields/SearchInput";
+import { SortSelect } from "../../components/fields/SortSelect";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { getFieldError, hasItemErrors } from "../../utils/getFieldError";
 import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
 import { useListSearch } from "../../hooks/useListSearch";
+import { useListSort } from "../../hooks/useListSort";
 
 function blankEquipment() {
   return {
@@ -54,6 +56,21 @@ export function EquipmentSection() {
   const noResults =
     hasQuery && fields.length > 0 && fields.every((_field, index) => !matches(index));
   const [confirmClear, setConfirmClear] = useState(false);
+
+  const { sortBy, setSortBy, sortedIndexes, availableOptions } = useListSort<{
+    name?: string;
+    attachments?: { expiryDate?: Date }[];
+  }>(control, "equipment", {
+    getName: (e) => e.name,
+    // Combines the shared CPR Expiry Date with this item's own attachment
+    // expiry, same as equipmentStatusBadge below — "worst first" should
+    // agree with what the badge itself shows.
+    getExpiryDates: (e) => [cprExpiryDate, ...(e.attachments ?? []).map((a) => a.expiryDate)],
+  });
+  // See VisitorsSection.tsx: `sortedIndexes` (from a separate `useWatch`
+  // subscription) can briefly lag one render behind `fields` right after a
+  // remove() — filter out undefined to avoid crashing on a stale index.
+  const orderedFields = sortedIndexes.map((i) => fields[i]).filter(Boolean);
 
   function handleClearAll() {
     remove();
@@ -170,6 +187,10 @@ export function EquipmentSection() {
         placeholder="Search equipment by name, type, plate, or license no..."
       />
 
+      <div className="max-w-xs">
+        <SortSelect value={sortBy} onChange={setSortBy} options={availableOptions} />
+      </div>
+
       <div className="flex justify-end">
         <button
           type="button"
@@ -188,7 +209,7 @@ export function EquipmentSection() {
       ) : (
         <RepeatableSection
           title="Equipment List"
-          items={fields}
+          items={orderedFields}
           addLabel="+ Add Equipment Item"
           emptyMessage="No equipment added yet. Add at least one item to continue."
           error={arrayError}
@@ -196,7 +217,8 @@ export function EquipmentSection() {
             append(blankEquipment());
             clearErrors("equipment");
           }}
-          renderItem={(field, index) => {
+          renderItem={(field) => {
+            const index = fields.findIndex((f) => f.id === field.id);
             if (!matches(index)) return null;
             // An item with an unresolved error can't stay collapsed — it
             // must be visible (and in the DOM) for the invalid field to be
