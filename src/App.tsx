@@ -24,7 +24,6 @@ const defaultValues: FormValues = {
   requestType: undefined,
   visitDateTime: undefined,
   visitDurationHours: 0,
-  visitDurationMinutes: 0,
   companyName: "",
   contactEmail: "",
   contactPhone: "",

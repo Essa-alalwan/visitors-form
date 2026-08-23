@@ -145,15 +145,9 @@ export function Step4ReviewSubmit() {
   return (
     <div className="relative">
       <StepCard
-        title="Purpose, Remarks & Review"
+        title="Remarks & Review"
         description="Confirm everything below before submitting your request."
       >
-        <TextAreaField
-          name="visitPurpose"
-          label="Visit Purpose"
-          required
-          rows={3}
-        />
         <TextAreaField
           name="requestRemarks"
           label="Request Remarks"

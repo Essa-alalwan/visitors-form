@@ -115,7 +115,6 @@ const baseFormSchema = z.object({
 
   visitDateTime: z.date().optional(),
   visitDurationHours: z.coerce.number().min(0).max(999).optional(),
-  visitDurationMinutes: z.coerce.number().min(0).max(59).optional(),
   companyName: z.string().min(1, "Please enter the company name"),
   // Required — guests now have to OTP-verify this email before continuing
   // past Step 2, so it can never legitimately be left blank.
@@ -314,7 +313,6 @@ export const STEP_FIELD_NAMES: Record<number, (keyof FormValues)[]> = {
   2: [
     "visitDateTime",
     "visitDurationHours",
-    "visitDurationMinutes",
     "companyName",
     "contactEmail",
     "contactPhone",
@@ -322,6 +320,7 @@ export const STEP_FIELD_NAMES: Record<number, (keyof FormValues)[]> = {
     "department",
   ],
   3: [
+    "visitPurpose",
     "visitKind",
     "visitors",
     "bringPPE",
@@ -330,5 +329,5 @@ export const STEP_FIELD_NAMES: Record<number, (keyof FormValues)[]> = {
     "equipmentDetails",
     "equipment",
   ],
-  4: ["visitPurpose", "requestRemarks", "agreeToTerms"],
+  4: ["requestRemarks", "agreeToTerms"],
 };

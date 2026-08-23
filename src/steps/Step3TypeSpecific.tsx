@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { StepCard } from "../components/layout/StepCard";
 import { WizardNav } from "../components/layout/WizardNav";
+import { TextAreaField } from "../components/fields/TextAreaField";
 import { VisitorsSection } from "./sections/VisitorsSection";
 import { MaterialSection } from "./sections/MaterialSection";
 import { EquipmentSection } from "./sections/EquipmentSection";
@@ -57,6 +58,13 @@ export function Step3TypeSpecific() {
 
   return (
     <StepCard title={copy.title} description={copy.description}>
+      <TextAreaField
+        name="visitPurpose"
+        label="Visit Purpose"
+        required
+        rows={3}
+      />
+
       {requestType === "visitors" && <VisitorsSection />}
       {requestType === "material" && <MaterialSection />}
       {requestType === "equipment" && <EquipmentSection />}

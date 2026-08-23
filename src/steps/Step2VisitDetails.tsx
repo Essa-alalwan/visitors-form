@@ -64,10 +64,9 @@ export function Step2VisitDetails() {
     >
       <DateTimeField name="visitDateTime" label="Visit Date & Time" required />
       <DurationStepper
-        hoursName="visitDurationHours"
-        minutesName="visitDurationMinutes"
+        name="visitDurationHours"
         label="Visit Duration"
-        helperText="Optional — expected length of the visit"
+        helperText="Optional — expected length of the visit, in hours"
       />
       <TextField name="companyName" label="Company Name" required />
       <TextField

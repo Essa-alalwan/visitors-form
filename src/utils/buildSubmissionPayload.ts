@@ -1,11 +1,13 @@
 import type { FormValues } from "../schemas/formSchema";
 import type { AttachmentPayload, SubmissionPayload } from "../data/payloadTypes";
 
-function formatDuration(hours?: number, minutes?: number): string | undefined {
-  if (!hours && !minutes) return undefined;
-  const h = String(hours ?? 0).padStart(2, "0");
-  const m = String(minutes ?? 0).padStart(2, "0");
-  return `${h}:${m}:00`;
+// Keeps the same "HH:MM:SS" shape the Requests sheet already expects in
+// this column — minutes are just always zero now that there's no more UI
+// for them, rather than changing the wire format on the backend too.
+function formatDuration(hours?: number): string | undefined {
+  if (!hours) return undefined;
+  const h = String(hours).padStart(2, "0");
+  return `${h}:00:00`;
 }
 
 function formatDateOnly(date?: Date): string {
@@ -42,10 +44,7 @@ export function buildSubmissionPayload(
 ): SubmissionPayload {
   const base = {
     visitDateTime: (values.visitDateTime as Date).toISOString(),
-    visitDuration: formatDuration(
-      values.visitDurationHours,
-      values.visitDurationMinutes,
-    ),
+    visitDuration: formatDuration(values.visitDurationHours),
     companyName: values.companyName,
     contactEmail: values.contactEmail || undefined,
     contactPhone: values.contactPhone || undefined,

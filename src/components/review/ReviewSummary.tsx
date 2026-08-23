@@ -20,10 +20,9 @@ export function ReviewSummary() {
   const { watch } = useFormContext<FormValues>();
   const values = watch();
 
-  const duration =
-    values.visitDurationHours || values.visitDurationMinutes
-      ? `${String(values.visitDurationHours ?? 0).padStart(2, "0")}h ${String(values.visitDurationMinutes ?? 0).padStart(2, "0")}m`
-      : null;
+  const duration = values.visitDurationHours
+    ? `${String(values.visitDurationHours).padStart(2, "0")}h`
+    : null;
 
   return (
     <div className="space-y-4">
