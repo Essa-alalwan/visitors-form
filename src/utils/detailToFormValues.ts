@@ -56,8 +56,8 @@ export function detailToFormValues(detail: RequestDetail): Partial<FormValues> {
         // Past submissions predate this toggle — infer it from the
         // existing value's shape rather than leaving it unset.
         cprType: (/^\d{9}$/.test(cprOrPassport)
-          ? "Bahraini CPR"
-          : "Other (CPR/Passport)") as "Bahraini CPR" | "Other (CPR/Passport)",
+          ? "National ID"
+          : "Passport") as "National ID" | "Passport",
         cprOrPassport,
         jobTitle: str(v.jobTitle),
         cprExpiryDate: toDate(v.cprExpiryDate),

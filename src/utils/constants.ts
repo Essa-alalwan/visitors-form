@@ -15,7 +15,18 @@ export const DEPARTMENTS = [
 
 export const VISIT_KINDS = ["Field Work", "Office Work", "Both"] as const;
 
-export const CPR_TYPES = ["Bahraini CPR", "Other (CPR/Passport)"] as const;
+export const CPR_TYPES = ["National ID", "Passport"] as const;
+
+// Fixed category list for a visitor's attachments beyond the first (which
+// is always the National ID scan) — shown as a dropdown instead of free text.
+export const VISITOR_ATTACHMENT_TYPES = [
+  "Letter",
+  "Visa (Work/Business/Visit)",
+  "Licenses",
+  "Certificates",
+  "Card Reader",
+  "Other Attachments",
+] as const;
 
 export const IN_OUT_OPTIONS = ["In", "Out"] as const;
 

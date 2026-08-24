@@ -15,7 +15,7 @@ import { worstExpiryStatus, expiryBadgeClasses } from "../../utils/expiryStatus"
 import { SearchInput } from "../../components/fields/SearchInput";
 import { SortSelect } from "../../components/fields/SortSelect";
 import { ConfirmModal } from "../../components/ConfirmModal";
-import { VISIT_KINDS, CPR_TYPES } from "../../utils/constants";
+import { VISIT_KINDS, CPR_TYPES, VISITOR_ATTACHMENT_TYPES } from "../../utils/constants";
 import { getFieldError, hasItemErrors } from "../../utils/getFieldError";
 import { useEnsureOneEntry } from "../../hooks/useEnsureOneEntry";
 import { useListSearch } from "../../hooks/useListSearch";
@@ -28,18 +28,17 @@ function VisitorCprExpiryBadge({ index }: { index: number }) {
   return <ExpiryBadge date={value} />;
 }
 
-// Bahraini CPR is always exactly 9 digits; anything else (a passport, or a
-// non-Bahraini CPR) can be any format. Both still write to the exact same
-// cprOrPassport field/database column — cprType is a frontend-only toggle
-// that only changes how this input is validated and typed into, never what
-// gets submitted.
+// National ID is always exactly 9 digits; a passport can be any format.
+// Both still write to the exact same cprOrPassport field/database column —
+// cprType is a frontend-only toggle that only changes how this input is
+// validated and typed into, never what gets submitted.
 function VisitorCprField({ index }: { index: number }) {
   const {
     control,
     formState: { errors },
   } = useFormContext();
   const cprType = useWatch({ control, name: `visitors.${index}.cprType` });
-  const isBahraini = cprType === "Bahraini CPR";
+  const isNationalId = cprType === "National ID";
   const name = `visitors.${index}.cprOrPassport`;
   const error = getFieldError(errors, name);
 
@@ -52,10 +51,10 @@ function VisitorCprField({ index }: { index: number }) {
         required
       />
       <FieldShell
-        label="CPR Card or Passport No"
+        label="National ID or Passport No"
         htmlFor={name}
         required
-        helperText={isBahraini ? "Exactly 9 digits" : "CPR or passport number, any format"}
+        helperText={isNationalId ? "Exactly 9 digits" : "Passport number, any format"}
         error={error}
       >
         <Controller
@@ -66,12 +65,12 @@ function VisitorCprField({ index }: { index: number }) {
               id={name}
               name={name}
               type="text"
-              inputMode={isBahraini ? "numeric" : "text"}
-              maxLength={isBahraini ? 9 : undefined}
+              inputMode={isNationalId ? "numeric" : "text"}
+              maxLength={isNationalId ? 9 : undefined}
               value={field.value ?? ""}
               onChange={(e) => {
                 const raw = e.target.value;
-                field.onChange(isBahraini ? raw.replace(/\D/g, "").slice(0, 9) : raw);
+                field.onChange(isNationalId ? raw.replace(/\D/g, "").slice(0, 9) : raw);
               }}
               onBlur={field.onBlur}
               aria-invalid={!!error}
@@ -112,7 +111,7 @@ function blankVisitor() {
   return {
     id: nanoid(),
     name: "",
-    cprType: "Bahraini CPR" as const,
+    cprType: "National ID" as const,
     cprOrPassport: "",
     jobTitle: "",
     cprExpiryDate: undefined,
@@ -245,7 +244,7 @@ export function VisitorsSection() {
       // shape the same way detailToFormValues.ts does for a loaded request.
       setValue(
         "visitors.0.cprType",
-        /^\d{9}$/.test(cprValue) ? "Bahraini CPR" : "Other (CPR/Passport)",
+        /^\d{9}$/.test(cprValue) ? "National ID" : "Passport",
       );
     }
     if (profile.jobTitle) setValue("visitors.0.jobTitle", String(profile.jobTitle));
@@ -261,7 +260,7 @@ export function VisitorsSection() {
     <div className="space-y-6">
       <SelectField
         name="visitKind"
-        label="Visit Kind"
+        label="Visit Type"
         options={VISIT_KINDS}
         optionLabels={{ Both: "Field Work and Office Work" }}
         required
@@ -270,7 +269,7 @@ export function VisitorsSection() {
       {requiresPPE && (
         <CheckboxField
           name="bringPPE"
-          label="I confirm I will bring appropriate PPE (Personal Protective Equipment) for this visit"
+          label="I confirm I will bring the following PPE for this visit: Helmet, Safety Glasses, Safety Shoes, and Long Sleeve Shirt"
           required
         />
       )}
@@ -361,7 +360,12 @@ export function VisitorsSection() {
                   label="Job Title"
                   required
                 />
-                <AttachmentList parentName={`visitors.${index}`} showExpiryDate />
+                <AttachmentList
+                  parentName={`visitors.${index}`}
+                  showExpiryDate
+                  firstItemDescription="National ID or Passport ID"
+                  descriptionOptions={VISITOR_ATTACHMENT_TYPES}
+                />
               </RepeatableCard>
             );
           }}

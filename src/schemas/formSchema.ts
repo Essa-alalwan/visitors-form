@@ -54,7 +54,7 @@ export const visitorSchema = z.object({
   // Frontend-only choice driving the format check below — never sent to
   // the backend, which always just receives cprOrPassport as one string
   // ("saved in the same spot" regardless of which type was picked).
-  cprType: z.enum(["Bahraini CPR", "Other (CPR/Passport)"]),
+  cprType: z.enum(["National ID", "Passport"]),
   cprOrPassport: z
     .string()
     .min(1, "Please enter a CPR card or passport number"),
@@ -218,19 +218,19 @@ export function getCrossFieldIssues(
 
   if (data.requestType === "visitors") {
     if (!data.visitKind) {
-      issues.push({ path: ["visitKind"], message: "Please choose a visit kind" });
+      issues.push({ path: ["visitKind"], message: "Please choose a visit type" });
     }
     if (!data.visitors || data.visitors.length === 0) {
       issues.push({ path: ["visitors"], message: "Please add at least one visitor" });
     }
     data.visitors?.forEach((visitor, index) => {
       if (
-        visitor.cprType === "Bahraini CPR" &&
+        visitor.cprType === "National ID" &&
         !/^\d{9}$/.test(visitor.cprOrPassport || "")
       ) {
         issues.push({
           path: ["visitors", String(index), "cprOrPassport"],
-          message: "Bahraini CPR must be exactly 9 digits",
+          message: "National ID must be exactly 9 digits",
         });
       }
       if (!visitor.cprExpiryDate) {
