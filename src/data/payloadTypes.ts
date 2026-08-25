@@ -57,6 +57,7 @@ export interface EquipmentDetailsPayload {
 
 export interface BaseSubmissionPayload {
   visitDateTime: string;
+  visitEndDate?: string;
   visitDuration?: string;
   companyName: string;
   contactEmail?: string;

@@ -53,6 +53,7 @@ interface WireEquipmentItem {
 
 interface WireBase {
   visitDateTime: string;
+  visitEndDate?: string;
   visitDuration?: string;
   companyName: string;
   contactEmail?: string;
@@ -145,6 +146,7 @@ export async function toWirePayload(
 ): Promise<WireSubmissionPayload> {
   const base: WireBase = {
     visitDateTime: toLocalDateTimeString(payload.visitDateTime),
+    visitEndDate: payload.visitEndDate,
     visitDuration: payload.visitDuration,
     companyName: payload.companyName,
     contactEmail: payload.contactEmail,

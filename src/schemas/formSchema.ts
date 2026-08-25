@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSameDay, startOfDay } from "date-fns";
 import {
   ACCEPTED_FILE_TYPES,
   MAX_FILE_SIZE_BYTES,
@@ -114,6 +115,7 @@ const baseFormSchema = z.object({
   requestType: z.enum(["visitors", "material", "equipment"]).optional(),
 
   visitDateTime: z.date().optional(),
+  visitEndDate: z.date().optional(),
   visitDurationHours: z.coerce.number().min(0).max(999).optional(),
   companyName: z.string().min(1, "Please enter the company name"),
   // Required — guests now have to OTP-verify this email before continuing
@@ -195,6 +197,13 @@ function checkAttachmentExpiry(
   issues: { path: string[]; message: string }[],
 ) {
   attachments?.forEach((att, index) => {
+    if (!att.expiryDate) {
+      issues.push({
+        path: [...basePath, "attachments", index, "expiryDate"].map(String),
+        message: "Please choose a document expiry date",
+      });
+      return;
+    }
     checkNotExpired(
       att.expiryDate,
       [...basePath, "attachments", index, "expiryDate"],
@@ -215,6 +224,22 @@ export function getCrossFieldIssues(
   if (!data.visitDateTime) {
     issues.push({ path: ["visitDateTime"], message: "Please choose a visit date and time" });
   }
+  if (!data.visitEndDate) {
+    issues.push({ path: ["visitEndDate"], message: "Please choose a visit end date" });
+  }
+  if (data.visitDateTime && data.visitEndDate) {
+    if (data.visitEndDate < startOfDay(data.visitDateTime)) {
+      issues.push({
+        path: ["visitEndDate"],
+        message: "Visit end date can't be before the visit start date",
+      });
+    } else if (isSameDay(data.visitDateTime, data.visitEndDate) && !data.visitDurationHours) {
+      issues.push({
+        path: ["visitDurationHours"],
+        message: "Please choose the visit duration in hours",
+      });
+    }
+  }
 
   if (data.requestType === "visitors") {
     if (!data.visitKind) {
@@ -226,11 +251,11 @@ export function getCrossFieldIssues(
     data.visitors?.forEach((visitor, index) => {
       if (
         visitor.cprType === "National ID" &&
-        !/^\d{9}$/.test(visitor.cprOrPassport || "")
+        !/^\d{6,9}$/.test(visitor.cprOrPassport || "")
       ) {
         issues.push({
           path: ["visitors", String(index), "cprOrPassport"],
-          message: "National ID must be exactly 9 digits",
+          message: "National ID must be at least 6 digits",
         });
       }
       if (!visitor.cprExpiryDate) {
@@ -312,6 +337,7 @@ export const STEP_FIELD_NAMES: Record<number, (keyof FormValues)[]> = {
   1: ["requestType"],
   2: [
     "visitDateTime",
+    "visitEndDate",
     "visitDurationHours",
     "companyName",
     "contactEmail",

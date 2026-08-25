@@ -127,17 +127,28 @@ export function AttachmentList({
             placeholder="Optional"
           />
           {showExpiryDate && (
-            <>
-              <DateTimeField
-                name={`${name}.${index}.expiryDate`}
-                label="Document Expiry Date"
-                helperText="Optional"
-                showTime={false}
-              />
-              <div className="-mt-3 flex justify-end">
+            index === 0 && firstItemDescription ? (
+              // This attachment's expiry is the same real-world fact as
+              // the visitor's own CPR/Passport Expiry Date field above —
+              // no separate input here, VisitorAttachmentExpiryAutofill
+              // keeps this attachment's expiryDate mirrored to it. Still
+              // show the status badge so the expiry status stays visible.
+              <div className="flex justify-end">
                 <AttachmentExpiryBadge name={`${name}.${index}`} />
               </div>
-            </>
+            ) : (
+              <>
+                <DateTimeField
+                  name={`${name}.${index}.expiryDate`}
+                  label="Document Expiry Date"
+                  required
+                  showTime={false}
+                />
+                <div className="-mt-3 flex justify-end">
+                  <AttachmentExpiryBadge name={`${name}.${index}`} />
+                </div>
+              </>
+            )
           )}
         </RepeatableCard>
       )}

@@ -37,6 +37,7 @@ export function detailToFormValues(detail: RequestDetail): Partial<FormValues> {
   const values: Partial<FormValues> = {
     requestType: REQUEST_TYPE_MAP[detail.requestType],
     visitDateTime: toDate(detail.visitDateTime),
+    visitEndDate: toDate(detail.visitEndDate),
     companyName: str(detail.companyName),
     contactEmail: str(detail.contactEmail),
     contactPhone: str(detail.contactPhone),
@@ -55,7 +56,7 @@ export function detailToFormValues(detail: RequestDetail): Partial<FormValues> {
         name: str(v.visitorName),
         // Past submissions predate this toggle — infer it from the
         // existing value's shape rather than leaving it unset.
-        cprType: (/^\d{9}$/.test(cprOrPassport)
+        cprType: (/^\d{6,9}$/.test(cprOrPassport)
           ? "National ID"
           : "Passport") as "National ID" | "Passport",
         cprOrPassport,

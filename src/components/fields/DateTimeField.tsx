@@ -10,6 +10,9 @@ interface DateTimeFieldProps {
   required?: boolean;
   helperText?: string;
   showTime?: boolean;
+  /** Overrides the default (today) lower bound — e.g. an end date that
+   * can't be picked before some other field's chosen date. */
+  minDate?: Date;
 }
 
 // Bounds the year dropdown to a relevant range (today .. +20 years) instead
@@ -31,13 +34,15 @@ export function DateTimeField({
   required,
   helperText,
   showTime = true,
+  minDate: minDateOverride,
 }: DateTimeFieldProps) {
   const {
     control,
     formState: { errors },
   } = useFormContext();
   const error = getFieldError(errors, name);
-  const { minDate, maxDate } = yearBounds();
+  const { minDate: defaultMinDate, maxDate } = yearBounds();
+  const minDate = minDateOverride ?? defaultMinDate;
 
   return (
     <FieldShell
@@ -62,6 +67,7 @@ export function DateTimeField({
               showYearDropdown
               showMonthDropdown
               dropdownMode="select"
+              adjustDateOnChange
               minDate={minDate}
               maxDate={maxDate}
               dateFormat={showTime ? "d MMM yyyy, h:mm aa" : "d MMM yyyy"}

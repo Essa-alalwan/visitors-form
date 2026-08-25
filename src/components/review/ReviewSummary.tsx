@@ -39,6 +39,14 @@ export function ReviewSummary() {
               : null
           }
         />
+        <SummaryRow
+          label="Visit End Date"
+          value={
+            values.visitEndDate instanceof Date
+              ? format(values.visitEndDate, "d MMM yyyy")
+              : null
+          }
+        />
         <SummaryRow label="Visit Duration" value={duration} />
         <SummaryRow label="Company Name" value={values.companyName} />
         <SummaryRow label="Contact Email" value={values.contactEmail} />

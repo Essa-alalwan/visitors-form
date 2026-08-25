@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
+import { isSameDay, startOfDay } from "date-fns";
 import { StepCard } from "../components/layout/StepCard";
 import { WizardNav } from "../components/layout/WizardNav";
 import { TextField } from "../components/fields/TextField";
@@ -17,7 +18,23 @@ export function Step2VisitDetails() {
   const { goNext, goBack } = useFormWizard();
   const { validateStep } = useStepValidation();
   const { isVerified, email } = useProfile();
-  const { getValues, setValue } = useFormContext<FormValues>();
+  const { getValues, setValue, control } = useFormContext<FormValues>();
+
+  const visitDateTime = useWatch({ control, name: "visitDateTime" });
+  const visitEndDate = useWatch({ control, name: "visitEndDate" });
+  // Treat "no end date chosen yet" as same-day too, so the hours stepper
+  // is the default state until the requester explicitly extends the
+  // visit to a later day.
+  const isSingleDay =
+    !visitEndDate || !visitDateTime || isSameDay(visitDateTime, visitEndDate);
+
+  // A stale hours value from before the visit was extended to span
+  // multiple days shouldn't silently ride along once the field is hidden.
+  useEffect(() => {
+    if (!isSingleDay) {
+      setValue("visitDurationHours", undefined);
+    }
+  }, [isSingleDay, setValue]);
 
   // Returning/verified users already proved their email before entering
   // the wizard — this gate only applies to guests. Tracks which exact
@@ -63,11 +80,21 @@ export function Step2VisitDetails() {
       description="Tell us when you're visiting and who to contact you about."
     >
       <DateTimeField name="visitDateTime" label="Visit Date & Time" required />
-      <DurationStepper
-        name="visitDurationHours"
-        label="Visit Duration"
-        helperText="Optional — expected length of the visit, in hours"
+      <DateTimeField
+        name="visitEndDate"
+        label="Visit End Date"
+        required
+        showTime={false}
+        minDate={visitDateTime ? startOfDay(visitDateTime) : undefined}
       />
+      {isSingleDay && (
+        <DurationStepper
+          name="visitDurationHours"
+          label="Visit Duration"
+          helperText="Required — expected length of the visit, in hours"
+          required
+        />
+      )}
       <TextField name="companyName" label="Company Name" required />
       <TextField
         name="contactEmail"

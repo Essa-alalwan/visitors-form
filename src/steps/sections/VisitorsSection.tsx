@@ -28,8 +28,9 @@ function VisitorCprExpiryBadge({ index }: { index: number }) {
   return <ExpiryBadge date={value} />;
 }
 
-// National ID is always exactly 9 digits; a passport can be any format.
-// Both still write to the exact same cprOrPassport field/database column —
+// National ID is digits-only, at least 6 (up to the 9-digit cap below); a
+// passport can be any format. Both still write to the exact same
+// cprOrPassport field/database column —
 // cprType is a frontend-only toggle that only changes how this input is
 // validated and typed into, never what gets submitted.
 function VisitorCprField({ index }: { index: number }) {
@@ -54,7 +55,7 @@ function VisitorCprField({ index }: { index: number }) {
         label="National ID or Passport No"
         htmlFor={name}
         required
-        helperText={isNationalId ? "Exactly 9 digits" : "Passport number, any format"}
+        helperText={isNationalId ? "At least 6 digits" : "Passport number, any format"}
         error={error}
       >
         <Controller
@@ -83,26 +84,38 @@ function VisitorCprField({ index }: { index: number }) {
   );
 }
 
-// Defaults the visitor's first attachment's Document Expiry Date to match
-// their CPR/Passport Expiry Date, since that attachment is very often a
-// scan of the same document — avoids retyping the same date twice. Only
-// fills it in while it's still blank; never overwrites a value the user
-// already set (e.g. because the attachment turned out to be something
-// else with its own expiry).
+// The visitor's first attachment is always the National ID/Passport scan,
+// so its Document Expiry Date is the same real-world fact as the CPR/
+// Passport Expiry Date field above — there's no separate input for it
+// (see AttachmentList.tsx), so this keeps it permanently mirrored instead
+// of just filling it in once. Always copying (not only while blank)
+// matters here: if it only filled in once, editing the CPR/Passport
+// Expiry Date later would silently leave the old, wrong value on the
+// attachment with no UI to ever notice or fix it.
 function VisitorAttachmentExpiryAutofill({ index }: { index: number }) {
-  const { control, setValue, getValues } = useFormContext();
+  const { control, setValue } = useFormContext();
   const cprExpiryDate = useWatch({
     control,
     name: `visitors.${index}.cprExpiryDate`,
   });
+  // For a signed-in user, cprExpiryDate can already be prefilled the
+  // instant this card first mounts — before AttachmentList's own
+  // useEnsureOneEntry has created attachments.0 via the field array's real
+  // append. Writing into attachments.0.expiryDate before that happens
+  // would create an untracked, malformed entry outside useFieldArray's own
+  // state, and AttachmentList would then append a second, proper one on
+  // top of it. Watching the real attachment's id (only ever set by
+  // append) guards against that and lets this effect correctly retry once
+  // it actually exists.
+  const firstAttachmentId = useWatch({
+    control,
+    name: `visitors.${index}.attachments.0.id`,
+  });
 
   useEffect(() => {
-    if (!cprExpiryDate) return;
-    const current = getValues(`visitors.${index}.attachments.0.expiryDate`);
-    if (!current) {
-      setValue(`visitors.${index}.attachments.0.expiryDate`, cprExpiryDate);
-    }
-  }, [cprExpiryDate, index, setValue, getValues]);
+    if (!cprExpiryDate || !firstAttachmentId) return;
+    setValue(`visitors.${index}.attachments.0.expiryDate`, cprExpiryDate);
+  }, [cprExpiryDate, firstAttachmentId, index, setValue]);
 
   return null;
 }
@@ -123,6 +136,7 @@ export function VisitorsSection() {
   const {
     control,
     setValue,
+    getValues,
     formState: { errors },
     clearErrors,
   } = useFormContext();
@@ -134,7 +148,6 @@ export function VisitorsSection() {
   const visitKind = useWatch({ control, name: "visitKind" });
   const requiresPPE = visitKind === "Field Work" || visitKind === "Both";
   const { profile, isVerified } = useProfile();
-  const prefillApplied = useRef(false);
 
   const { query, setQuery, matches, hasQuery } = useListSearch<{
     name?: string;
@@ -230,31 +243,40 @@ export function VisitorsSection() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
+  // Step 3 fully unmounts/remounts every time the wizard navigates away and
+  // back (see StepTransition in App.tsx), so a mount-scoped "already
+  // applied" ref can't reliably guard this — it resets on every remount and
+  // would silently re-clobber whatever the user just edited. Guarding each
+  // field on its own current value instead means prefill only ever fills in
+  // something still blank, never overwrites an edit, and needs no ref at all.
   useEffect(() => {
-    if (!isVerified || !profile || prefillApplied.current || fields.length === 0) {
+    if (!isVerified || !profile || fields.length === 0) {
       return;
     }
-    prefillApplied.current = true;
 
-    if (profile.visitorName) setValue("visitors.0.name", String(profile.visitorName));
-    if (profile.cprOrPassport) {
+    if (profile.visitorName && !getValues("visitors.0.name")) {
+      setValue("visitors.0.name", String(profile.visitorName));
+    }
+    if (profile.cprOrPassport && !getValues("visitors.0.cprOrPassport")) {
       const cprValue = String(profile.cprOrPassport);
       setValue("visitors.0.cprOrPassport", cprValue);
       // Saved history predates this toggle, so infer it from the value's
       // shape the same way detailToFormValues.ts does for a loaded request.
       setValue(
         "visitors.0.cprType",
-        /^\d{9}$/.test(cprValue) ? "National ID" : "Passport",
+        /^\d{6,9}$/.test(cprValue) ? "National ID" : "Passport",
       );
     }
-    if (profile.jobTitle) setValue("visitors.0.jobTitle", String(profile.jobTitle));
-    if (profile.cprExpiryDate) {
+    if (profile.jobTitle && !getValues("visitors.0.jobTitle")) {
+      setValue("visitors.0.jobTitle", String(profile.jobTitle));
+    }
+    if (profile.cprExpiryDate && !getValues("visitors.0.cprExpiryDate")) {
       setValue("visitors.0.cprExpiryDate", new Date(profile.cprExpiryDate));
     }
-    if (profile.ppeConfirmed === "Yes") {
+    if (profile.ppeConfirmed === "Yes" && !getValues("bringPPE")) {
       setValue("bringPPE", true);
     }
-  }, [isVerified, profile, fields.length, setValue]);
+  }, [isVerified, profile, fields.length, setValue, getValues]);
 
   return (
     <div className="space-y-6">
@@ -262,7 +284,7 @@ export function VisitorsSection() {
         name="visitKind"
         label="Visit Type"
         options={VISIT_KINDS}
-        optionLabels={{ Both: "Field Work and Office Work" }}
+        optionLabels={{ Both: "Field Work and Office Visit" }}
         required
       />
 

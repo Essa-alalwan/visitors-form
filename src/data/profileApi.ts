@@ -49,6 +49,7 @@ export interface RequestDetail {
   requestId: string;
   requestType: string;
   visitDateTime?: string;
+  visitEndDate?: string;
   visitKind?: string;
   visitPurpose?: string;
   contactPerson?: string;

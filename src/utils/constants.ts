@@ -13,7 +13,7 @@ export const DEPARTMENTS = [
   "Plant Management",
 ] as const;
 
-export const VISIT_KINDS = ["Field Work", "Office Work", "Both"] as const;
+export const VISIT_KINDS = ["Field Work", "Office Visit", "Both"] as const;
 
 export const CPR_TYPES = ["National ID", "Passport"] as const;
 

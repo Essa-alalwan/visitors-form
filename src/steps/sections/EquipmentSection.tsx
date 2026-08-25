@@ -147,9 +147,16 @@ export function EquipmentSection() {
   // Defaults each equipment item's first attachment's Document Expiry Date
   // to match the CPR Expiry Date above, same rationale as the visitor
   // version — avoids retyping the same date, only fills in while blank.
+  // Guarded on the attachment's own id (only ever set by AttachmentList's
+  // real append) so this can't write into attachments.0 before it exists —
+  // doing so would create an untracked, malformed entry outside
+  // useFieldArray's own state, and AttachmentList would then append a
+  // second, proper one on top of it (the exact bug hit on the visitor
+  // side when cprExpiryDate arrives prefilled before the card mounts).
   useEffect(() => {
     if (!cprExpiryDate) return;
     fields.forEach((_field, index) => {
+      if (!getValues(`equipment.${index}.attachments.0.id`)) return;
       const current = getValues(`equipment.${index}.attachments.0.expiryDate`);
       if (!current) {
         setValue(`equipment.${index}.attachments.0.expiryDate`, cprExpiryDate);

@@ -1,16 +1,23 @@
 import { useFormContext } from "react-hook-form";
 import { Minus, Plus } from "lucide-react";
 import { FieldShell } from "./FieldShell";
+import { getFieldError } from "../../utils/getFieldError";
 
 interface DurationStepperProps {
   name: string;
   label: string;
   helperText?: string;
+  required?: boolean;
 }
 
-export function DurationStepper({ name, label, helperText }: DurationStepperProps) {
-  const { watch, setValue } = useFormContext();
+export function DurationStepper({ name, label, helperText, required }: DurationStepperProps) {
+  const {
+    watch,
+    setValue,
+    formState: { errors },
+  } = useFormContext();
   const value: number = watch(name) ?? 0;
+  const error = getFieldError(errors, name);
 
   function update(next: number) {
     const clamped = Math.min(Math.max(next, 0), 999);
@@ -18,8 +25,12 @@ export function DurationStepper({ name, label, helperText }: DurationStepperProp
   }
 
   return (
-    <FieldShell label={label} helperText={helperText}>
-      <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1.5">
+    <FieldShell label={label} htmlFor={name} helperText={helperText} required={required} error={error}>
+      <div
+        id={name}
+        tabIndex={-1}
+        className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1.5 focus:outline-none"
+      >
         <button
           type="button"
           onClick={() => update(value - 1)}
