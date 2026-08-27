@@ -146,7 +146,9 @@ export async function toWirePayload(
 ): Promise<WireSubmissionPayload> {
   const base: WireBase = {
     visitDateTime: toLocalDateTimeString(payload.visitDateTime),
-    visitEndDate: payload.visitEndDate,
+    visitEndDate: payload.visitEndDate
+  ? toLocalDateTimeString(payload.visitEndDate)
+  : undefined,
     visitDuration: payload.visitDuration,
     companyName: payload.companyName,
     contactEmail: payload.contactEmail,

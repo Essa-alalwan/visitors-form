@@ -43,7 +43,7 @@ export function ReviewSummary() {
           label="Visit End Date"
           value={
             values.visitEndDate instanceof Date
-              ? format(values.visitEndDate, "d MMM yyyy")
+              ? format(values.visitEndDate, "d MMM yyyy, h:mm a")
               : null
           }
         />

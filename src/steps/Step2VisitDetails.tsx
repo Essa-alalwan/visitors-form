@@ -84,7 +84,7 @@ export function Step2VisitDetails() {
         name="visitEndDate"
         label="Visit End Date"
         required
-        showTime={false}
+       
         minDate={visitDateTime ? startOfDay(visitDateTime) : undefined}
       />
       {isSingleDay && (

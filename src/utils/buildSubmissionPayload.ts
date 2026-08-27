@@ -44,7 +44,9 @@ export function buildSubmissionPayload(
 ): SubmissionPayload {
   const base = {
     visitDateTime: (values.visitDateTime as Date).toISOString(),
-    visitEndDate: formatDateOnly(values.visitEndDate) || undefined,
+    visitEndDate: values.visitEndDate
+  ? values.visitEndDate.toISOString()
+  : undefined,
     visitDuration: formatDuration(values.visitDurationHours),
     companyName: values.companyName,
     contactEmail: values.contactEmail || undefined,

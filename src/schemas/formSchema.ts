@@ -250,10 +250,10 @@ export function getCrossFieldIssues(
   checkNotInPast(data.visitDateTime, ["visitDateTime"], "Visit Date & Time", issues);
   checkNotInPast(data.visitEndDate, ["visitEndDate"], "Visit End Date", issues);
   if (data.visitDateTime && data.visitEndDate) {
-    if (data.visitEndDate < startOfDay(data.visitDateTime)) {
-      issues.push({
-        path: ["visitEndDate"],
-        message: "Visit end date can't be before the visit start date",
+    if (data.visitEndDate <= data.visitDateTime) {
+  issues.push({
+    path: ["visitEndDate"],
+    message: "Visit end date and time must be after the visit start date and time",
       });
     } else if (isSameDay(data.visitDateTime, data.visitEndDate) && !data.visitDurationHours) {
       issues.push({
