@@ -51,10 +51,14 @@ function requiresHsseStage(item: RequestHistoryEntry): boolean {
   // non-empty default ("Pending Action") even for requests where HSSE
   // is never actually part of the approval path, so its presence can't
   // be used as a signal here.
-  return (
-    item.requestType === "Visitors" &&
-    (item.visitKind === "Field Work" || item.visitKind === "Both")
-  );
+  return item.requestType === "Visitors" && item.visitKind === "Field Work";
+}
+
+// Matches the backend's own check in writeRequestRow_ (Code.gs), which is
+// the actual enforcement point — this is just UX, to not even offer an
+// edit that the server would reject anyway.
+function isArchived(item: RequestHistoryEntry): boolean {
+  return (item.status || "").toLowerCase().includes("archive");
 }
 
 type OpenRequestResult = { ok: true } | { ok: false; error: string };
@@ -176,19 +180,21 @@ export function HistoryModal({
                         />
                       )}
                       <div className="mt-2 flex items-center gap-4">
-                        <button
-                          type="button"
-                          onClick={() => handleOpen(item.requestId, onEditRequest)}
-                          disabled={loadingId !== null}
-                          className="flex items-center gap-1.5 text-xs font-semibold text-primary-700 hover:text-primary-800 disabled:opacity-60"
-                        >
-                          {loadingId === item.requestId ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <PencilLine className="h-3.5 w-3.5" />
-                          )}
-                          Edit This Request
-                        </button>
+                        {!isArchived(item) && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpen(item.requestId, onEditRequest)}
+                            disabled={loadingId !== null}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-primary-700 hover:text-primary-800 disabled:opacity-60"
+                          >
+                            {loadingId === item.requestId ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <PencilLine className="h-3.5 w-3.5" />
+                            )}
+                            Edit This Request
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleOpen(item.requestId, onDuplicateRequest)}

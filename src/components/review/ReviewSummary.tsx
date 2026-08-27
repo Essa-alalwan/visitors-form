@@ -60,7 +60,7 @@ export function ReviewSummary() {
       {values.requestType === "visitors" && (
         <SummarySection title={`Visitors (${values.visitors?.length ?? 0})`}>
           <SummaryRow label="Visit Type" value={values.visitKind} />
-          {(values.visitKind === "Field Work" || values.visitKind === "Both") && (
+          {values.visitKind === "Field Work" && (
             <SummaryRow
               label="PPE Confirmed"
               value={values.bringPPE ? "Yes" : null}

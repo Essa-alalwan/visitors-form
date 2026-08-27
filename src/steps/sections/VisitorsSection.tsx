@@ -146,7 +146,7 @@ export function VisitorsSection() {
   });
   const arrayError = getFieldError(errors, "visitors");
   const visitKind = useWatch({ control, name: "visitKind" });
-  const requiresPPE = visitKind === "Field Work" || visitKind === "Both";
+  const requiresPPE = visitKind === "Field Work";
   const { profile, isVerified } = useProfile();
 
   const { query, setQuery, matches, hasQuery } = useListSearch<{
@@ -284,7 +284,6 @@ export function VisitorsSection() {
         name="visitKind"
         label="Visit Type"
         options={VISIT_KINDS}
-        optionLabels={{ Both: "Field Work and Office Visit" }}
         required
       />
 

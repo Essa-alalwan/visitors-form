@@ -191,6 +191,26 @@ function checkNotExpired(
   }
 }
 
+// Catches a stale visit date carried over by "Resubmit as New" (or just an
+// edit sitting open past its original date) — same day-level boundary
+// DateTimeField's own minDate already enforces for newly-picked dates, so
+// this just makes sure an already-set value can't sneak past that same
+// rule unnoticed.
+function checkNotInPast(
+  date: Date | undefined,
+  path: (string | number)[],
+  label: string,
+  issues: { path: string[]; message: string }[],
+) {
+  if (!date) return;
+  if (date < startOfDay(new Date())) {
+    issues.push({
+      path: path.map(String),
+      message: `${label} is in the past — please choose a current date`,
+    });
+  }
+}
+
 function checkAttachmentExpiry(
   attachments: { expiryDate?: Date }[] | undefined,
   basePath: (string | number)[],
@@ -227,6 +247,8 @@ export function getCrossFieldIssues(
   if (!data.visitEndDate) {
     issues.push({ path: ["visitEndDate"], message: "Please choose a visit end date" });
   }
+  checkNotInPast(data.visitDateTime, ["visitDateTime"], "Visit Date & Time", issues);
+  checkNotInPast(data.visitEndDate, ["visitEndDate"], "Visit End Date", issues);
   if (data.visitDateTime && data.visitEndDate) {
     if (data.visitEndDate < startOfDay(data.visitDateTime)) {
       issues.push({
@@ -273,10 +295,7 @@ export function getCrossFieldIssues(
       checkAttachmentFiles(visitor.attachments, ["visitors", index], issues);
       checkAttachmentExpiry(visitor.attachments, ["visitors", index], issues);
     });
-    if (
-      (data.visitKind === "Field Work" || data.visitKind === "Both") &&
-      !data.bringPPE
-    ) {
+    if (data.visitKind === "Field Work" && !data.bringPPE) {
       issues.push({
         path: ["bringPPE"],
         message: "Please confirm you will bring appropriate PPE",
